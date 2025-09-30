@@ -201,7 +201,7 @@ const Products: React.FC = () => {
             {products.length > 0 && (
                 <button
                     onClick={handleOpenModal}
-                    className='rounded-full bg-blue-500 w-max p-4 text-white fixed bottom-10 right-10 hover:bg-neutral/90 transition-colors duration-200 shadow-lg'
+                    className='rounded-full bg-blue-500 w-max p-4 text-white fixed bottom-10 right-10 hover:bg-blue-700 transition-colors duration-200 shadow-lg'
                 >
                     <Plus size={30} />
                 </button>

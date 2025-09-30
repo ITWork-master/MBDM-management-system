@@ -122,7 +122,7 @@ const Testimonials: React.FC = () => {
                 <Navbar sectionName='Témoignage' />
                 <div className="flex justify-center items-center h-64">
                     <div className="text-center">
-                        <Loader className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
+                        <Loader className="animate-spin h-12 w-12 text-green-500 mx-auto mb-4" />
                         <p className="text-gray-600">Chargement des témoignages...</p>
                     </div>
                 </div>
