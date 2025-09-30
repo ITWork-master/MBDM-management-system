@@ -144,7 +144,7 @@ const Products: React.FC = () => {
                 <Navbar sectionName='Produits' />
                 <div className="flex justify-center items-center h-64">
                     <div className="text-center">
-                        <Loader className="animate-spin h-12 w-12 text-neutral mx-auto mb-4" />
+                        <Loader className="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" />
                         <p className="text-gray-600">Chargement des produits...</p>
                     </div>
                 </div>
@@ -178,7 +178,7 @@ const Products: React.FC = () => {
                         </p>
                         <button
                             onClick={handleOpenModal}
-                            className="px-4 py-2 bg-neutral text-white rounded-md hover:bg-black transition-colors duration-200"
+                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
                         >
                             Ajouter un produit
                         </button>
@@ -201,7 +201,7 @@ const Products: React.FC = () => {
             {products.length > 0 && (
                 <button
                     onClick={handleOpenModal}
-                    className='rounded-full bg-neutral w-max p-4 text-white fixed bottom-10 right-10 hover:bg-neutral/90 transition-colors duration-200 shadow-lg'
+                    className='rounded-full bg-blue-500 w-max p-4 text-white fixed bottom-10 right-10 hover:bg-neutral/90 transition-colors duration-200 shadow-lg'
                 >
                     <Plus size={30} />
                 </button>
@@ -286,7 +286,7 @@ const Products: React.FC = () => {
                                 type="button"
                                 onClick={handleSubmit}
                                 disabled={loading || !formData.title || !formData.description}
-                                className="px-4 py-2 bg-neutral text-white rounded-md hover:bg-black transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                             >
                                 {loading && <Loader className="animate-spin h-4 w-4" />}
                                 <span>{loading ? 'Chargement...' : submitButtonText}</span>
