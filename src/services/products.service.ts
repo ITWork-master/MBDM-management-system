@@ -1,27 +1,6 @@
 // src/services/products.services.ts
+import type { CreateProductData, Product, UpdateProductData } from '../types/type';
 import { supabase } from './../lib/supabase/Supabase';
-
-export interface Product {
-    id: string;
-    user_id: string;
-    title: string;
-    description: string;
-    image_url: string | null;
-    created_at: string;
-    updated_at: string | null;
-}
-
-export interface CreateProductData {
-    title: string;
-    description: string;
-    image_url?: string;
-}
-
-export interface UpdateProductData {
-    title?: string;
-    description?: string;
-    image_url?: string;
-}
 
 export const productsService = {
     // Créer un produit

@@ -1,26 +1,5 @@
+import type { CreateAchievementData, Achievement, UpdateAchievementData } from '../types/type';
 import { supabase } from './../lib/supabase/Supabase';
-
-export interface Achievement {
-    id: string;
-    user_id: string;
-    title: string;
-    description: string;
-    image_url: string | null;
-    created_at: string;
-    updated_at: string | null;
-}
-
-export interface CreateAchievementData {
-    title: string;
-    description: string;
-    image_url?: string;
-}
-
-export interface UpdateAchievementData {
-    title?: string;
-    description?: string;
-    image_url?: string;
-}
 
 export const achievementsService = {
     // Créer un exploit

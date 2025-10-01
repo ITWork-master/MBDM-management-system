@@ -6,7 +6,7 @@ import Modal from './tools/Modal';
 import TestimonialCard from './TestimonialCard';
 import { Plus, Loader, MessageCircle } from 'lucide-react';
 import { useTestimonials } from './hooks/UseTestimonials';
-import type { Testimonial, UpdateTestimonialData } from '../services/testimonials.service';
+import type { Testimonial, UpdateTestimonialData } from '../types/type';
 
 const Testimonials: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);

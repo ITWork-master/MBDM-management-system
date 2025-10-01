@@ -6,7 +6,7 @@ import Modal from './tools/Modal';
 import AchievementCard from './AchivementCard';
 import { Plus, Loader, Trophy } from 'lucide-react';
 import { useAchievements } from './hooks/UseAchievements';
-import type { Achievement, UpdateAchievementData } from './../services/achievement.service';
+import type { Achievement, UpdateAchievementData } from '../types/type';
 
 const Achievements: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);

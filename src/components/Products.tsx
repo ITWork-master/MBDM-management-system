@@ -6,7 +6,7 @@ import Modal from './tools/Modal';
 import ProductCard from './ProductCard';
 import { Plus, Loader } from 'lucide-react';
 import { useProduct } from './hooks/UseProducts';
-import type { Product, UpdateProductData } from './../services/products.service';
+import type { Product, UpdateProductData } from '../types/type';
 
 const Products: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);

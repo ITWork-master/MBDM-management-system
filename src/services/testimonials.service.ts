@@ -1,24 +1,6 @@
 // src/services/testimonials.service.ts
+import type { CreateTestimonialData, Testimonial, UpdateTestimonialData } from '../types/type';
 import { supabase } from './../lib/supabase/Supabase';
-
-export interface Testimonial {
-    id: string;
-    user_id: string;
-    client_name: string;
-    message: string;
-    created_at: string;
-    updated_at: string | null;
-}
-
-export interface CreateTestimonialData {
-    client_name: string;
-    message: string;
-}
-
-export interface UpdateTestimonialData {
-    client_name?: string;
-    message?: string;
-}
 
 export const testimonialsService = {
     // Créer un témoignage
