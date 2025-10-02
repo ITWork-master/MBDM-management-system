@@ -2,12 +2,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { AuthState, AppView } from '../types/type';
 import { supabase } from '../lib/supabase/Supabase';
-import { loginUser, registerNewUser } from '../services/supabase.service';
+import { loginUser, logoutUser, registerNewUser, updatePassword } from '../services/supabase.service';
 
 interface AuthContextType extends AuthState {
     login: (email: string, password: string) => Promise<void>;
     register: (email: string, password: string, name: string) => Promise<void>;
     logout: () => Promise<void>;
+    changePassword: (newPassword : string) => Promise<void>;
     setView: (view: AppView) => void;
     currentView: AppView;
     setLoading: (loading: boolean) => void;
@@ -135,16 +136,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const changePassword = async (newPassword: string) => {
+        try {
+            setLoading(true);
+            clearError();
+            updatePassword(newPassword);
+        } catch (error: any) {
+            handleError(error, 'Erreur lors du changement de mot de passe');
+        } finally {
+            setLoading(false);
+        }
+    }
+
     const logout = async () => {
         try {
             setLoading(true);
             clearError();
-
-            const { error } = await supabase.auth.signOut();
-            if (error) throw error;
-
-            // Le changement d'état sera géré par onAuthStateChange
-
+            logoutUser();
         } catch (error: any) {
             handleError(error, 'Erreur de déconnexion');
         } finally {
@@ -168,6 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 loading,
                 login,
                 register,
+                changePassword,
                 logout,
                 setView,
                 currentView,

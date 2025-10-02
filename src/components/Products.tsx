@@ -15,6 +15,7 @@ const Products: React.FC = () => {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
+        type: ''
     });
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [isLoadingProducts, setIsLoadingProducts] = useState(true);
@@ -48,7 +49,7 @@ const Products: React.FC = () => {
 
     const handleOpenModal = () => {
         setEditingProduct(null);
-        setFormData({ title: '', description: '' });
+        setFormData({ title: '', description: '', type: '' });
         setSelectedImage(null);
         setIsModalOpen(true);
     };
@@ -56,7 +57,7 @@ const Products: React.FC = () => {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setEditingProduct(null);
-        setFormData({ title: '', description: '' });
+        setFormData({ title: '', description: '', type: '' });
         setSelectedImage(null);
     };
 
@@ -74,6 +75,14 @@ const Products: React.FC = () => {
         }
     };
 
+    const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
     const handleSubmit = async () => {
         try {
             let imageUrl = undefined;
@@ -88,6 +97,7 @@ const Products: React.FC = () => {
                 const updateData: UpdateProductData = {
                     title: formData.title,
                     description: formData.description,
+                    type: formData.type
                 };
 
                 if (imageUrl) {
@@ -101,6 +111,7 @@ const Products: React.FC = () => {
                 await createProduct({
                     title: formData.title,
                     description: formData.description,
+                    type: formData.type,
                     image_url: imageUrl,
                 });
                 alert('Produit créé avec succès!');
@@ -120,6 +131,7 @@ const Products: React.FC = () => {
         setFormData({
             title: product.title,
             description: product.description || '',
+            type: product.type
         });
         setIsModalOpen(true);
     };
@@ -221,19 +233,35 @@ const Products: React.FC = () => {
 
                     {/* Formulaire */}
                     <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Nom du produit *
-                            </label>
-                            <input
-                                type="text"
-                                name="title"
-                                value={formData.title}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Entrez le nom du produit"
-                                required
-                            />
+                        <div className='flex items-center'>
+                            <div className='w-full'>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Nom du produit *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    value={formData.title}
+                                    onChange={handleInputChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Entrez le nom du produit"
+                                    required
+                                />
+                            </div>
+                            <div className='w-full'>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Type *
+                                </label>
+                                <select
+                                    name="type"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={formData.type}
+                                    onChange={handleTypeChange}
+                                >
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div>

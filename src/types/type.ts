@@ -22,6 +22,7 @@ export interface Product {
     user_id: string;
     title: string;
     description: string;
+    type: string;
     image_url: string | null;
     created_at: string;
     updated_at: string | null;
@@ -30,12 +31,14 @@ export interface Product {
 export interface CreateProductData {
     title: string;
     description: string;
+    type: string;
     image_url?: string;
 }
 
 export interface UpdateProductData {
     title?: string;
     description?: string;
+    type: string;
     image_url?: string;
 }
 

@@ -1,6 +1,7 @@
 // src/hooks/useAchievements.ts
 import { useState, useCallback } from 'react';
-import { achievementsService, type Achievement, type CreateAchievementData, type UpdateAchievementData } from './../../services/achievement.service';
+import { achievementsService } from './../../services/achievement.service';
+import type { CreateAchievementData, Achievement, UpdateAchievementData } from '../../types/type';
 
 export const useAchievements = () => {
     const [loading, setLoading] = useState(false);

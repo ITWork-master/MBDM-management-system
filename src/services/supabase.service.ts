@@ -89,8 +89,35 @@ const loginUser = async (email: string, password: string) => {
     }
 };
 
+const updatePassword = async (newPassword: string) => {
+    const { data, error } = await supabase.auth.updateUser({
+        password: newPassword
+    });
+
+    if (error) {
+        console.error('Erreur changement mot de passe:', error.message);
+        return error;
+    } else {
+        console.log("Mot de passe mis à jour avec succès.");
+        return data;
+    }
+};
+
+const logoutUser = async () => {
+    try {
+
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+
+    } catch (error: any) {
+        throw new Error("Erreur de Deconnexion S.B.");
+    }
+}
+
 
 export {
     loginUser,
-    registerNewUser
+    registerNewUser,
+    updatePassword,
+    logoutUser
 }

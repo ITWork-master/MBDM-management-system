@@ -8,7 +8,7 @@ interface ComponentsLayoutProps {
 const ComponentsLayout: React.FC<ComponentsLayoutProps> = ({ children, className = "" }) => {
     return (
         <div
-            className={`w-screen pt-17
+            className={`w-screen pt-17 h-screen overflow-x-hidden overflow-y-scroll
                 ${className}
             `}
         >

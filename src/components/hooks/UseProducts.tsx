@@ -1,6 +1,7 @@
 // src/hooks/useProduct.ts
 import { useState, useCallback } from 'react';
-import { productsService, type Product, type CreateProductData, type UpdateProductData } from './../../services/products.service';
+import { productsService } from './../../services/products.service';
+import type { CreateProductData, Product, UpdateProductData } from '../../types/type';
 
 export const useProduct = () => {
     const [loading, setLoading] = useState(false);

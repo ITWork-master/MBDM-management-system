@@ -1,6 +1,7 @@
 // src/hooks/useTestimonials.ts
 import { useState, useCallback } from 'react';
-import { testimonialsService, type Testimonial, type CreateTestimonialData, type UpdateTestimonialData } from './../../services/testimonials.service';
+import { testimonialsService } from './../../services/testimonials.service';
+import type { CreateTestimonialData, Testimonial, UpdateTestimonialData } from '../../types/type';
 
 export const useTestimonials = () => {
     const [loading, setLoading] = useState(false);
