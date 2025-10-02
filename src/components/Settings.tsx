@@ -1,17 +1,25 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Navbar from './tools/Navbar'
 import ComponentsLayout from './tools/ComponentsLayout'
 import { PowerOff, Shield, Palette, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import ThemeSwitcher from './tools/ThemeSwitcher'
 
 const Settings: React.FC = () => {
-
     const [isLoadingLogout, setIsLoadingLogout] = useState(false)
-    const [theme, setTheme] = useState('light')
+    const [previewTheme, setPreviewTheme] = useState('light')
     const [formData, setFormData] = useState({
         newPassword: '',
     })
-    const { logout, changePassword } = useAuth()
+    const { logout, changePassword, changeTheme, userTheme } = useAuth()
+
+    useEffect(() => {
+        if (previewTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', "cupcake")
+        } else {
+            document.documentElement.setAttribute('data-theme', "dark")
+        }
+    }, [previewTheme])
 
     const handleLogout = () => {
         if (window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
@@ -50,6 +58,11 @@ const Settings: React.FC = () => {
             console.log("Erreur lors du changement de Mot de passe : ", error);
             alert('Erreur lors du changement de mot de passe');
         }
+    }
+
+    const handleApplyTheme = () => {
+        changeTheme(previewTheme);
+        alert('Thème appliqué avec succès !');
     }
 
     const handleAccountDeletion = () => {
@@ -128,16 +141,22 @@ const Settings: React.FC = () => {
                                 <div className="form-control">
                                     <label className="label">
                                         <span className="label-text">Thème</span>
+                                        <span className="label-text-alt text-info">
+                                            {previewTheme === userTheme ? '✓ Actuel' : 'Prévisualisation'}
+                                        </span>
                                     </label>
-                                    <select
-                                        className="select select-bordered"
-                                        value={theme}
-                                        onChange={(e) => setTheme(e.target.value)}
+                                    <ThemeSwitcher
+                                        setThemeValue={setPreviewTheme}
+                                    />
+                                </div>
+                                <div>
+                                    <button
+                                        className='btn btn-primary w-full'
+                                        onClick={handleApplyTheme}
+                                        disabled={previewTheme === userTheme}
                                     >
-                                        <option value="light">Clair</option>
-                                        <option value="dark">Sombre</option>
-                                        <option value="auto">Automatique</option>
-                                    </select>
+                                        {previewTheme === userTheme ? 'Thème déjà appliqué' : 'Appliquer le thème'}
+                                    </button>
                                 </div>
                             </div>
                         </div>

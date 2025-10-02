@@ -15,7 +15,7 @@ const App: React.FC = () => {
   if (loading) {
     return (
       <div className="loading-container">
-        <div className="absolute w-screen h-screen flex justify-center items-center text-4xl">
+        <div className="absolute w-screen h-screen flex justify-center items-center bg-base-100 text-base-content">
           <span className="loading loading-infinity loading-xl"></span>
         </div>
       </div>

@@ -2,13 +2,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { AuthState, AppView } from '../types/type';
 import { supabase } from '../lib/supabase/Supabase';
-import { loginUser, logoutUser, registerNewUser, updatePassword } from '../services/supabase.service';
+import { loginUser, logoutUser, registerNewUser, updatePassword, updateUserTheme } from '../services/supabase.service';
 
 interface AuthContextType extends AuthState {
     login: (email: string, password: string) => Promise<void>;
     register: (email: string, password: string, name: string) => Promise<void>;
     logout: () => Promise<void>;
-    changePassword: (newPassword : string) => Promise<void>;
+    changePassword: (newPassword: string) => Promise<void>;
+    changeTheme: (theme: string) => Promise<void>;
     setView: (view: AppView) => void;
     currentView: AppView;
     setLoading: (loading: boolean) => void;
@@ -22,6 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [authState, setAuthState] = useState<AuthState>({
         user: null,
         userName: null,
+        userTheme: 'light',
         error: null,
     });
     const [loading, setLoading] = useState<boolean>(true);
@@ -55,9 +57,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     return;
                 }
 
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session?.user.id)
+                    .maybeSingle();
+
+                if (profileError) {
+                    throw new Error(`Erreur chargement profil: ${profileError.message}`);
+                }
+
                 updateAuthState({
                     user: session?.user ?? null,
+                    userTheme: profile?.theme
                 });
+
+                if (profile?.theme === 'light') document.documentElement.setAttribute('data-theme', "cupcake")
+                else document.documentElement.setAttribute('data-theme', "dark");
 
                 if (session?.user) {
                     setCurrentView('dashboard');
@@ -169,6 +185,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }, 500)
     };
 
+    const changeTheme = async (theme: string) => {
+        try {
+            setLoading(true);
+            clearError();
+
+            if (!authState.user) {
+                throw new Error('Utilisateur non connecté');
+            }
+
+            await updateUserTheme(authState.user.id, theme);
+
+            updateAuthState({
+                userTheme: theme
+            });
+
+            if (theme === 'light') {
+                document.documentElement.setAttribute('data-theme', "cupcake");
+            } else {
+                document.documentElement.setAttribute('data-theme', "dark");
+            }
+
+            console.log(`Thème changé vers: ${theme}`);
+
+        } catch (error: any) {
+            handleError(error, 'Erreur lors du changement de thème');
+        } finally {
+            setLoading(false);
+        }
+    }
+
     return (
         <AuthContext.Provider
             value={{
@@ -177,6 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 login,
                 register,
                 changePassword,
+                changeTheme,
                 logout,
                 setView,
                 currentView,

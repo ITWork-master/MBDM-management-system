@@ -15,20 +15,20 @@ const Navbar: React.FC<NavbarProps> = ({ sectionName }) => {
     };
 
     return (
-        <nav className="fixed top-0 w-screen bg-base-100 shadow-sm border-b z-20 border-gray-200">
+        <nav className="fixed top-0 w-screen bg-base-100 shadow-sm border-b z-20 border-base-300">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
                     {/* Bouton retour et nom de la section */}
                     <div className="flex items-center space-x-3">
                         <button
                             onClick={handleBackToDashboard}
-                            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors duration-200 p-2 rounded-lg hover:bg-gray-100"
+                            className="flex items-center space-x-2 transition-colors duration-200 p-2 rounded-lg hover:bg-base-300"
                         >
                             <ArrowLeft size={20} />
                             <span className="font-medium">Retour</span>
                         </button>
                         <div className="h-6 w-px bg-gray-300"></div>
-                        <h1 className="text-xl font-semibold text-gray-900">
+                        <h1 className="text-xl font-semibold">
                             {sectionName}
                         </h1>
                     </div>

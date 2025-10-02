@@ -157,7 +157,7 @@ const Products: React.FC = () => {
                 <div className="flex justify-center items-center h-64">
                     <div className="text-center">
                         <Loader className="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" />
-                        <p className="text-gray-600">Chargement des produits...</p>
+                        <p className="text-base-content">Chargement des produits...</p>
                     </div>
                 </div>
             </ComponentsLayout>
@@ -171,21 +171,21 @@ const Products: React.FC = () => {
             {/* Liste des produits */}
             <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900">Mes Produits</h1>
-                    <span className="text-gray-600">
+                    <h1 className="text-2xl font-bold text-base-content">Mes Produits</h1>
+                    <span className="text-base-content/70">
                         {products.length} produit{products.length > 1 ? 's' : ''}
                     </span>
                 </div>
 
                 {products.length === 0 ? (
                     <div className="text-center py-12">
-                        <div className="text-gray-400 mb-4">
+                        <div className="text-base-content/50 mb-4">
                             <Plus size={48} className="mx-auto" />
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        <h3 className="text-lg font-medium text-base-content/90 mb-2">
                             Aucun produit
                         </h3>
-                        <p className="text-gray-600 mb-4">
+                        <p className="text-base-content/60 mb-4">
                             Commencez par ajouter votre premier produit.
                         </p>
                         <button
@@ -235,7 +235,7 @@ const Products: React.FC = () => {
                     <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                         <div className='flex items-center'>
                             <div className='w-full'>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-base-content/70 mb-2">
                                     Nom du produit *
                                 </label>
                                 <input
@@ -249,7 +249,7 @@ const Products: React.FC = () => {
                                 />
                             </div>
                             <div className='w-full'>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-base-content/70 mb-2">
                                     Type *
                                 </label>
                                 <select
@@ -265,7 +265,7 @@ const Products: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-base-content/70 mb-2">
                                 Description *
                             </label>
                             <textarea
@@ -280,7 +280,7 @@ const Products: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-base-content/70 mb-2">
                                 Image du produit
                             </label>
                             <input
@@ -290,12 +290,12 @@ const Products: React.FC = () => {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             {selectedImage && (
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-2 text-sm text-base-content/60">
                                     Nouvelle image sélectionnée: {selectedImage.name}
                                 </p>
                             )}
                             {editingProduct?.image_url && !selectedImage && (
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-2 text-sm text-base-content/60">
                                     Image actuelle: <a href={editingProduct.image_url} target="_blank" rel="noopener noreferrer" className="text-neutral hover:underline">Voir l'image</a>
                                 </p>
                             )}
@@ -306,7 +306,7 @@ const Products: React.FC = () => {
                                 type="button"
                                 onClick={handleCloseModal}
                                 disabled={loading}
-                                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
+                                className="px-4 py-2 text-base-content/60 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
                             >
                                 Annuler
                             </button>

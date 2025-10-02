@@ -11,6 +11,7 @@ export interface AppUser {
 export interface AuthState {
     user: User | null;
     userName: string | null;
+    userTheme : string;
     error: string | null;
 }
 

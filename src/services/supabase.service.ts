@@ -114,10 +114,27 @@ const logoutUser = async () => {
     }
 }
 
+const updateUserTheme = async (userId :string, theme : string) => {
+    try {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ theme })
+            .eq('id', userId);
+
+        if (error) {
+            throw error;
+        }
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour du thème:', error);
+        throw error;
+    }
+}
+
 
 export {
     loginUser,
     registerNewUser,
     updatePassword,
-    logoutUser
+    logoutUser,
+    updateUserTheme
 }
