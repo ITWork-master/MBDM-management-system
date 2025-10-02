@@ -23,14 +23,14 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, className = ""
             {/* Modal Content */}
             <div
                 className={`
-                    relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4
+                    relative bg-base-100 rounded-lg shadow-xl max-w-2xl w-full mx-4
                     max-h-[90vh] overflow-y-auto
                     ${className}
                 `}>
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 z-10"
+                    className="absolute top-4 right-4 p-2 rounded-full hover:bg-base-200 transition-colors duration-200 z-10"
                 >
                     <X size={20} />
                 </button>

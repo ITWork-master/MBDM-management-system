@@ -287,7 +287,7 @@ const Products: React.FC = () => {
                                 type="file"
                                 accept="image/*"
                                 onChange={handleImageChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="file-input w-full focus:ring-2 focus:ring-blue-500"
                             />
                             {selectedImage && (
                                 <p className="mt-2 text-sm text-base-content/60">
@@ -306,7 +306,7 @@ const Products: React.FC = () => {
                                 type="button"
                                 onClick={handleCloseModal}
                                 disabled={loading}
-                                className="px-4 py-2 text-base-content/60 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
+                                className="px-4 py-2 text-base-content/60 border border-gray-300 rounded-md hover:bg-base-300 transition-colors duration-200 disabled:opacity-50"
                             >
                                 Annuler
                             </button>

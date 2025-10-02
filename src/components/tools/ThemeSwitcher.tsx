@@ -39,7 +39,7 @@ const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ setThemeValue }) => {
             <input
                 type="checkbox"
                 value="dark"
-                className="toggle theme-controller"
+                className="toggle theme-controller "
                 checked={isDark}
                 onChange={handleThemeChange}
             />

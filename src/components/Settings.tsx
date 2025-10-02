@@ -137,17 +137,19 @@ const Settings: React.FC = () => {
                             Apparence
                         </div>
                         <div className="collapse-content">
-                            <div className="space-y-4">
-                                <div className="form-control">
+                            <div className="space-y-5">
+                                <div className="form-control flex justify-center gap-10">
+                                    <div className='w-max'>
+                                        <ThemeSwitcher
+                                            setThemeValue={setPreviewTheme}
+                                        />
+                                    </div>
                                     <label className="label">
                                         <span className="label-text">Thème</span>
                                         <span className="label-text-alt text-info">
                                             {previewTheme === userTheme ? '✓ Actuel' : 'Prévisualisation'}
                                         </span>
                                     </label>
-                                    <ThemeSwitcher
-                                        setThemeValue={setPreviewTheme}
-                                    />
                                 </div>
                                 <div>
                                     <button

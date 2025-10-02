@@ -145,7 +145,7 @@ const Achievements: React.FC = () => {
                 <div className="flex justify-center items-center h-64">
                     <div className="text-center">
                         <Loader className="animate-spin h-12 w-12 text-yellow-600 mx-auto mb-4" />
-                        <p className="text-gray-600">Chargement des exploits...</p>
+                        <p className="text-base-content/60">Chargement des exploits...</p>
                     </div>
                 </div>
             </ComponentsLayout>
@@ -159,21 +159,21 @@ const Achievements: React.FC = () => {
             {/* Liste des exploits */}
             <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900">Mes Exploits</h1>
-                    <span className="text-gray-600">
+                    <h1 className="text-2xl font-bold text-base-content/90">Mes Exploits</h1>
+                    <span className="text-base-content/60">
                         {achievements.length} exploit{achievements.length > 1 ? 's' : ''}
                     </span>
                 </div>
 
                 {achievements.length === 0 ? (
                     <div className="text-center py-12">
-                        <div className="text-gray-400 mb-4">
+                        <div className="text-base-content/40 mb-4">
                             <Trophy size={48} className="mx-auto" />
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        <h3 className="text-lg font-medium text-base-content/90 mb-2">
                             Aucun exploit
                         </h3>
-                        <p className="text-gray-600 mb-4">
+                        <p className="text-base-content/60 mb-4">
                             Commencez par ajouter votre premier exploit ou réalisation.
                         </p>
                         <button
@@ -222,7 +222,7 @@ const Achievements: React.FC = () => {
                     {/* Formulaire */}
                     <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-base-content/70 mb-2">
                                 Titre de l'exploit *
                             </label>
                             <input
@@ -237,7 +237,7 @@ const Achievements: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-base-content/70 mb-2">
                                 Description *
                             </label>
                             <textarea
@@ -252,7 +252,7 @@ const Achievements: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-base-content/70 mb-2">
                                 Image de l'exploit
                             </label>
                             <input
@@ -262,12 +262,12 @@ const Achievements: React.FC = () => {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
                             />
                             {selectedImage && (
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-2 text-sm text-base-content/60">
                                     Nouvelle image sélectionnée: {selectedImage.name}
                                 </p>
                             )}
                             {editingAchievement?.image_url && !selectedImage && (
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-2 text-sm text-base-content/60">
                                     Image actuelle: <a href={editingAchievement.image_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Voir l'image</a>
                                 </p>
                             )}
@@ -278,7 +278,7 @@ const Achievements: React.FC = () => {
                                 type="button"
                                 onClick={handleCloseModal}
                                 disabled={loading}
-                                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
+                                className="px-4 py-2 text-base-content/60 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
                             >
                                 Annuler
                             </button>

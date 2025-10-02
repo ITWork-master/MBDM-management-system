@@ -89,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
+                console.log(event);
                 updateAuthState({
                     user: session?.user ?? null,
                     error: null,
@@ -178,6 +179,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const setView = (view: AppView) => {
         clearError();
+        if (authState.userTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', "cupcake");
+        } else {
+            document.documentElement.setAttribute('data-theme', "dark");
+        }
         setLoading(true)
         setTimeout(() => {
             setCurrentView(view);

@@ -1,7 +1,7 @@
 // src/components/AchievementCard.tsx
 import React from 'react';
-import { Edit2, Trash2, Trophy, Image as ImageIcon } from 'lucide-react';
-import { type Achievement } from './../services/achievement.service';
+import { Edit2, Trash2, Trophy } from 'lucide-react';
+import { type Achievement } from './../types/type';
 
 interface AchievementCardProps {
     achievement: Achievement;
@@ -21,9 +21,9 @@ const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, onEdit, 
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-300">
+        <div className="bg-base-100 rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-300">
             {/* Image de l'exploit */}
-            <div className="aspect-w-16 aspect-h-9 bg-gray-100">
+            <div className="aspect-w-16 aspect-h-9 bg-base-200">
                 {achievement.image_url ? (
                     <img
                         src={achievement.image_url}
@@ -31,8 +31,8 @@ const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, onEdit, 
                         className="w-full h-48 object-cover"
                     />
                 ) : (
-                    <div className="w-full h-48 flex items-center justify-center bg-gray-100">
-                        <Trophy size={48} className="text-gray-400" />
+                    <div className="w-full h-48 flex items-center justify-center bg-base-200">
+                        <Trophy size={48} className="text-base-content/40" />
                     </div>
                 )}
             </div>
@@ -41,17 +41,17 @@ const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, onEdit, 
             <div className="p-4">
                 <div className="flex items-start mb-2">
                     <Trophy size={20} className="text-yellow-500 mr-2 mt-1 flex-shrink-0" />
-                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                    <h3 className="text-lg font-semibold text-base-content/90 line-clamp-2">
                         {achievement.title}
                     </h3>
                 </div>
 
-                <p className="text-gray-600 text-sm mb-3 line-clamp-3">
+                <p className="text-base-content/60 text-sm mb-3 line-clamp-3">
                     {achievement.description}
                 </p>
 
                 {/* Date de création */}
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                <div className="flex items-center justify-between text-xs text-base-content/50 mb-3">
                     <span>
                         Créé le {new Date(achievement.created_at).toLocaleDateString('fr-FR')}
                     </span>
@@ -66,7 +66,7 @@ const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, onEdit, 
                 <div className="flex justify-end space-x-2 pt-2 border-t border-gray-100">
                     <button
                         onClick={handleEdit}
-                        className="flex items-center space-x-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors duration-200"
+                        className="flex items-center btn btn-primary"
                     >
                         <Edit2 size={16} />
                         <span>Modifier</span>
@@ -74,7 +74,7 @@ const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, onEdit, 
 
                     <button
                         onClick={handleDelete}
-                        className="flex items-center space-x-1 px-3 py-2 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors duration-200"
+                        className="flex items-center btn btn-error"
                     >
                         <Trash2 size={16} />
                         <span>Effacer</span>
