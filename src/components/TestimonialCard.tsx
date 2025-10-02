@@ -21,9 +21,9 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({ testimonial, onEdit, 
     };
 
     return (
-        <div className="bg-base-100 rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-300">
+        <div className="bg-base-100 rounded-lg shadow-md border border-base-content/20 overflow-hidden hover:shadow-lg transition-shadow duration-300">
             {/* Contenu du témoignage */}
-            <div className="p-6">
+            <div className="pb-2 pt-4 px-3">
                 <div className="flex items-start mb-4">
                     <Quote size={20} className="text-base-content/40 mr-2 mt-1 flex-shrink-0" />
                     <p className="text-base-content/70 italic line-clamp-4">
@@ -31,32 +31,26 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({ testimonial, onEdit, 
                     </p>
                 </div>
 
-                <div className="border-t border-gray-100 pt-4">
-                    <h3 className="font-semibold text-base-content/90 text-lg mb-1">
-                        {testimonial.client_name}
-                    </h3>
+                <div className="border-t border-base-content/10 flex justify-between items-center pt-2">
 
-                    {/* Date de création */}
-                    <div className="text-xs text-base-content/50 mb-3">
-                        Ajouté le {new Date(testimonial.created_at).toLocaleDateString('fr-FR')}
+                    <div className="text-xs text-base-content/50 h-full">
+                        {testimonial.client_name} | Ajouté le {new Date(testimonial.created_at).toLocaleDateString('fr-FR')}
                     </div>
 
                     {/* Actions */}
-                    <div className="flex justify-end space-x-2">
+                    <div className="flex gap-2">
                         <button
                             onClick={handleEdit}
-                            className="flex items-center btn btn-primary"
+                            className="btn btn-primary btn-sm"
                         >
                             <Edit2 size={16} />
-                            <span>Modifier</span>
                         </button>
 
                         <button
                             onClick={handleDelete}
-                            className="flex items-center btn btn-error"
+                            className="btn btn-error btn-sm"
                         >
                             <Trash2 size={16} />
-                            <span>Effacer</span>
                         </button>
                     </div>
                 </div>

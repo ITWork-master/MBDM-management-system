@@ -21,64 +21,65 @@ const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, onEdit, 
     };
 
     return (
-        <div className="bg-base-100 rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-300">
+        <div className="bg-base-100 rounded-lg shadow-md border border-base-content/20 overflow-hidden hover:shadow-lg transition-shadow duration-300">
             {/* Image de l'exploit */}
-            <div className="aspect-w-16 aspect-h-9 bg-base-200">
-                {achievement.image_url ? (
-                    <img
-                        src={achievement.image_url}
-                        alt={achievement.title}
-                        className="w-full h-48 object-cover"
-                    />
-                ) : (
-                    <div className="w-full h-48 flex items-center justify-center bg-base-200">
-                        <Trophy size={48} className="text-base-content/40" />
+            <div className='flex items-center gap-4'>
+                <div className="aspect-w-16 aspect-h-9 bg-base-200">
+                    {achievement.image_url ? (
+                        <img
+                            src={achievement.image_url}
+                            alt={achievement.title}
+                            className="w-full h-20 object-cover"
+                        />
+                    ) : (
+                        <div className="w-full h-20 flex items-center justify-center bg-base-200">
+                            <Trophy size={48} className="text-base-content/40" />
+                        </div>
+                    )}
+                </div>
+                <div>
+                    <div className="flex items-start">
+                        <Trophy size={20} className="text-yellow-500 mr-2 mt-1 flex-shrink-0" />
+                        <h3 className="text-lg font-semibold text-base-content/90 line-clamp-2">
+                            {achievement.title}
+                        </h3>
                     </div>
-                )}
+
+                    <p className="text-base-content/60 text-sm mb-3 line-clamp-3">
+                        {achievement.description}
+                    </p>
+                </div>
             </div>
 
             {/* Contenu de l'exploit */}
-            <div className="p-4">
-                <div className="flex items-start mb-2">
-                    <Trophy size={20} className="text-yellow-500 mr-2 mt-1 flex-shrink-0" />
-                    <h3 className="text-lg font-semibold text-base-content/90 line-clamp-2">
-                        {achievement.title}
-                    </h3>
-                </div>
-
-                <p className="text-base-content/60 text-sm mb-3 line-clamp-3">
-                    {achievement.description}
-                </p>
-
-                {/* Date de création */}
-                <div className="flex items-center justify-between text-xs text-base-content/50 mb-3">
-                    <span>
-                        Créé le {new Date(achievement.created_at).toLocaleDateString('fr-FR')}
-                    </span>
-                    {achievement.updated_at && (
+            <div className="px-4 pb-2">
+                <div className='flex justify-between items-center border-t border-base-content/10 pt-2'>
+                    <div className="flex items-center justify-between text-xs text-base-content/50">
                         <span>
-                            Modifié le {new Date(achievement.updated_at).toLocaleDateString('fr-FR')}
+                            Créé le {new Date(achievement.created_at).toLocaleDateString('fr-FR')}
                         </span>
-                    )}
-                </div>
+                        {achievement.updated_at && (
+                            <span>
+                                Modifié le {new Date(achievement.updated_at).toLocaleDateString('fr-FR')}
+                            </span>
+                        )}
+                    </div>
 
-                {/* Actions */}
-                <div className="flex justify-end space-x-2 pt-2 border-t border-gray-100">
-                    <button
-                        onClick={handleEdit}
-                        className="flex items-center btn btn-primary"
-                    >
-                        <Edit2 size={16} />
-                        <span>Modifier</span>
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleEdit}
+                            className="btn btn-primary btn-sm"
+                        >
+                            <Edit2 size={16} />
+                        </button>
 
-                    <button
-                        onClick={handleDelete}
-                        className="flex items-center btn btn-error"
-                    >
-                        <Trash2 size={16} />
-                        <span>Effacer</span>
-                    </button>
+                        <button
+                            onClick={handleDelete}
+                            className="btn btn-error btn-sm"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
