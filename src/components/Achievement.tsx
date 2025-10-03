@@ -165,6 +165,7 @@ const Achievements: React.FC = () => {
                     </span>
                 </div>
 
+
                 {achievements.length === 0 ? (
                     <div className="text-center py-12">
                         <div className="text-base-content/40 mb-4">
@@ -184,15 +185,30 @@ const Achievements: React.FC = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {achievements.map((achievement) => (
-                            <AchievementCard
-                                key={achievement.id}
-                                achievement={achievement}
-                                onEdit={handleEditAchievement}
-                                onDelete={handleDeleteAchievement}
-                            />
-                        ))}
+                    <div>
+                        {/* Version Desktop - Grille compacte responsive */}
+                        <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                            {achievements.map((achievement) => (
+                                <AchievementCard
+                                    key={achievement.id}
+                                    achievement={achievement}
+                                    onEdit={handleEditAchievement}
+                                    onDelete={handleDeleteAchievement}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Version Mobile - Liste compacte */}
+                        <div className="md:hidden space-y-3">
+                            {achievements.map((achievement) => (
+                                <AchievementCard
+                                    key={achievement.id}
+                                    achievement={achievement}
+                                    onEdit={handleEditAchievement}
+                                    onDelete={handleDeleteAchievement}
+                                />
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>

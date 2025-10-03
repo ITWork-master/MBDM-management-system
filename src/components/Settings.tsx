@@ -138,7 +138,7 @@ const Settings: React.FC = () => {
                         </div>
                         <div className="collapse-content">
                             <div className="space-y-5">
-                                <div className="form-control flex justify-center gap-10">
+                                <div className="form-control flex justify-center md:gap-10 gap-2">
                                     <div className='w-max'>
                                         <ThemeSwitcher
                                             setThemeValue={setPreviewTheme}
@@ -147,7 +147,7 @@ const Settings: React.FC = () => {
                                     <label className="label">
                                         <span className="label-text">Thème</span>
                                         <span className="label-text-alt text-info">
-                                            {previewTheme === userTheme ? '✓ Actuel' : 'Prévisualisation'}
+                                            {previewTheme === userTheme ? '✓' : ''}
                                         </span>
                                     </label>
                                 </div>

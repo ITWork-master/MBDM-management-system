@@ -4,7 +4,7 @@ import Navbar from './tools/Navbar';
 import ComponentsLayout from './tools/ComponentsLayout';
 import Modal from './tools/Modal';
 import ProductCard from './ProductCard';
-import { Plus, Loader } from 'lucide-react';
+import { Plus, Loader, Package } from 'lucide-react';
 import { useProduct } from './hooks/UseProducts';
 import type { Product, UpdateProductData } from '../types/type';
 
@@ -15,7 +15,7 @@ const Products: React.FC = () => {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        type: ''
+        type: '1' // Valeur par défaut
     });
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [isLoadingProducts, setIsLoadingProducts] = useState(true);
@@ -49,7 +49,7 @@ const Products: React.FC = () => {
 
     const handleOpenModal = () => {
         setEditingProduct(null);
-        setFormData({ title: '', description: '', type: '' });
+        setFormData({ title: '', description: '', type: '1' });
         setSelectedImage(null);
         setIsModalOpen(true);
     };
@@ -57,7 +57,7 @@ const Products: React.FC = () => {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setEditingProduct(null);
-        setFormData({ title: '', description: '', type: '' });
+        setFormData({ title: '', description: '', type: '1' });
         setSelectedImage(null);
     };
 
@@ -157,7 +157,7 @@ const Products: React.FC = () => {
                 <div className="flex justify-center items-center h-64">
                     <div className="text-center">
                         <Loader className="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" />
-                        <p className="text-base-content">Chargement des produits...</p>
+                        <p className="text-base-content/60">Chargement des produits...</p>
                     </div>
                 </div>
             </ComponentsLayout>
@@ -171,16 +171,16 @@ const Products: React.FC = () => {
             {/* Liste des produits */}
             <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold text-base-content">Mes Produits</h1>
-                    <span className="text-base-content/70">
+                    <h1 className="text-2xl font-bold text-base-content/90">Mes Produits</h1>
+                    <span className="text-base-content/60">
                         {products.length} produit{products.length > 1 ? 's' : ''}
                     </span>
                 </div>
 
                 {products.length === 0 ? (
                     <div className="text-center py-12">
-                        <div className="text-base-content/50 mb-4">
-                            <Plus size={48} className="mx-auto" />
+                        <div className="text-base-content/40 mb-4">
+                            <Package size={48} className="mx-auto" />
                         </div>
                         <h3 className="text-lg font-medium text-base-content/90 mb-2">
                             Aucun produit
@@ -190,21 +190,36 @@ const Products: React.FC = () => {
                         </p>
                         <button
                             onClick={handleOpenModal}
-                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200"
                         >
                             Ajouter un produit
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {products.map((product) => (
-                            <ProductCard
-                                key={product.id}
-                                product={product}
-                                onEdit={handleEditProduct}
-                                onDelete={handleDeleteProduct}
-                            />
-                        ))}
+                    <div>
+                        {/* Version Desktop - Grille compacte responsive */}
+                        <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                            {products.map((product) => (
+                                <ProductCard
+                                    key={product.id}
+                                    product={product}
+                                    onEdit={handleEditProduct}
+                                    onDelete={handleDeleteProduct}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Version Mobile - Liste compacte */}
+                        <div className="md:hidden space-y-3">
+                            {products.map((product) => (
+                                <ProductCard
+                                    key={product.id}
+                                    product={product}
+                                    onEdit={handleEditProduct}
+                                    onDelete={handleDeleteProduct}
+                                />
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
@@ -213,7 +228,7 @@ const Products: React.FC = () => {
             {products.length > 0 && (
                 <button
                     onClick={handleOpenModal}
-                    className='rounded-full bg-blue-500 w-max p-4 text-white fixed bottom-10 right-10 hover:bg-blue-700 transition-colors duration-200 shadow-lg'
+                    className='rounded-full bg-blue-500 w-max p-4 text-white fixed bottom-10 right-10 hover:bg-blue-600 transition-colors duration-200 shadow-lg'
                 >
                     <Plus size={30} />
                 </button>
@@ -233,8 +248,8 @@ const Products: React.FC = () => {
 
                     {/* Formulaire */}
                     <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                        <div className='flex items-center'>
-                            <div className='w-full'>
+                        <div className='flex flex-col sm:flex-row gap-4'>
+                            <div className='flex-1'>
                                 <label className="block text-sm font-medium text-base-content/70 mb-2">
                                     Nom du produit *
                                 </label>
@@ -243,23 +258,24 @@ const Products: React.FC = () => {
                                     name="title"
                                     value={formData.title}
                                     onChange={handleInputChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-base-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder="Entrez le nom du produit"
                                     required
                                 />
                             </div>
-                            <div className='w-full'>
+                            <div className='flex-1'>
                                 <label className="block text-sm font-medium text-base-content/70 mb-2">
                                     Type *
                                 </label>
                                 <select
                                     name="type"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-base-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     value={formData.type}
                                     onChange={handleTypeChange}
+                                    required
                                 >
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
+                                    <option value="1">Type 1</option>
+                                    <option value="2">Type 2</option>
                                 </select>
                             </div>
                         </div>
@@ -272,7 +288,7 @@ const Products: React.FC = () => {
                                 name="description"
                                 value={formData.description}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-base-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 rows={4}
                                 placeholder="Entrez la description du produit"
                                 required
@@ -287,7 +303,7 @@ const Products: React.FC = () => {
                                 type="file"
                                 accept="image/*"
                                 onChange={handleImageChange}
-                                className="file-input w-full focus:ring-2 focus:ring-blue-500"
+                                className="file-input file-input-bordered w-full focus:ring-2 focus:ring-blue-500"
                             />
                             {selectedImage && (
                                 <p className="mt-2 text-sm text-base-content/60">
@@ -296,7 +312,7 @@ const Products: React.FC = () => {
                             )}
                             {editingProduct?.image_url && !selectedImage && (
                                 <p className="mt-2 text-sm text-base-content/60">
-                                    Image actuelle: <a href={editingProduct.image_url} target="_blank" rel="noopener noreferrer" className="text-neutral hover:underline">Voir l'image</a>
+                                    Image actuelle: <a href={editingProduct.image_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Voir l'image</a>
                                 </p>
                             )}
                         </div>
@@ -306,7 +322,7 @@ const Products: React.FC = () => {
                                 type="button"
                                 onClick={handleCloseModal}
                                 disabled={loading}
-                                className="px-4 py-2 text-base-content/60 border border-gray-300 rounded-md hover:bg-base-300 transition-colors duration-200 disabled:opacity-50"
+                                className="px-4 py-2 text-base-content/60 border border-base-300 rounded-md hover:bg-base-200 transition-colors duration-200 disabled:opacity-50"
                             >
                                 Annuler
                             </button>
@@ -314,7 +330,7 @@ const Products: React.FC = () => {
                                 type="button"
                                 onClick={handleSubmit}
                                 disabled={loading || !formData.title || !formData.description}
-                                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                             >
                                 {loading && <Loader className="animate-spin h-4 w-4" />}
                                 <span>{loading ? 'Chargement...' : submitButtonText}</span>
