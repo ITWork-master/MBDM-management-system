@@ -119,7 +119,7 @@ const Testimonials: React.FC = () => {
     if (isLoadingTestimonials) {
         return (
             <ComponentsLayout className='overflow-clip'>
-                <Navbar sectionName='Témoignage' />
+                <Navbar sectionName='Témoignages' />
                 <div className="flex justify-center items-center h-64">
                     <div className="text-center">
                         <Loader className="animate-spin h-12 w-12 text-green-500 mx-auto mb-4" />
@@ -132,7 +132,7 @@ const Testimonials: React.FC = () => {
 
     return (
         <ComponentsLayout className='overflow-clip'>
-            <Navbar sectionName='Témoignage' />
+            <Navbar sectionName='Témoignages' />
 
             {/* Liste des témoignages */}
             <div className="p-6">
@@ -162,15 +162,30 @@ const Testimonials: React.FC = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {testimonials.map((testimonial) => (
-                            <TestimonialCard
-                                key={testimonial.id}
-                                testimonial={testimonial}
-                                onEdit={handleEditTestimonial}
-                                onDelete={handleDeleteTestimonial}
-                            />
-                        ))}
+                    <div>
+                        {/* Version Desktop - Grille plus dense */}
+                        <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {testimonials.map((testimonial) => (
+                                <TestimonialCard
+                                    key={testimonial.id}
+                                    testimonial={testimonial}
+                                    onEdit={handleEditTestimonial}
+                                    onDelete={handleDeleteTestimonial}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Version Mobile - Liste compacte */}
+                        <div className="md:hidden space-y-3">
+                            {testimonials.map((testimonial) => (
+                                <TestimonialCard
+                                    key={testimonial.id}
+                                    testimonial={testimonial}
+                                    onEdit={handleEditTestimonial}
+                                    onDelete={handleDeleteTestimonial}
+                                />
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
@@ -208,7 +223,7 @@ const Testimonials: React.FC = () => {
                                 name="client_name"
                                 value={formData.client_name}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                className="w-full px-3 py-2 border border-base-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                                 placeholder="Entrez le nom du client"
                                 required
                             />
@@ -222,8 +237,8 @@ const Testimonials: React.FC = () => {
                                 name="message"
                                 value={formData.message}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                                rows={6}
+                                className="w-full px-3 py-2 border border-base-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                rows={5}
                                 placeholder="Entrez le témoignage du client"
                                 required
                             />
@@ -234,7 +249,7 @@ const Testimonials: React.FC = () => {
                                 type="button"
                                 onClick={handleCloseModal}
                                 disabled={loading}
-                                className="px-4 py-2 text-base-content/60 border border-gray-300 rounded-md hover:bg-base-300 transition-colors duration-200 disabled:opacity-50"
+                                className="px-4 py-2 text-base-content/60 border border-base-300 rounded-md hover:bg-base-200 transition-colors duration-200 disabled:opacity-50"
                             >
                                 Annuler
                             </button>

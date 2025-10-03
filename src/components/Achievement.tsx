@@ -1,15 +1,30 @@
 // src/components/Achievements.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Cropper from 'react-easy-crop';
 import Navbar from './tools/Navbar';
 import ComponentsLayout from './tools/ComponentsLayout';
 import Modal from './tools/Modal';
 import AchievementCard from './AchivementCard';
-import { Plus, Loader, Trophy } from 'lucide-react';
+import { Plus, Loader, Trophy, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { useAchievements } from './hooks/UseAchievements';
 import type { Achievement, UpdateAchievementData } from '../types/type';
 
+// Types pour le recadrage
+interface Crop {
+    x: number;
+    y: number;
+}
+
+interface CroppedArea {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
 const Achievements: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCropModalOpen, setIsCropModalOpen] = useState(false);
     const [achievements, setAchievements] = useState<Achievement[]>([]);
     const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(null);
     const [formData, setFormData] = useState({
@@ -18,6 +33,13 @@ const Achievements: React.FC = () => {
     });
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [isLoadingAchievements, setIsLoadingAchievements] = useState(true);
+
+    // États pour le recadrage
+    const [crop, setCrop] = useState<Crop>({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [rotation, setRotation] = useState(0);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<CroppedArea | null>(null);
+    const [imageSrc, setImageSrc] = useState<string | null>(null);
 
     const {
         createAchievement,
@@ -46,10 +68,109 @@ const Achievements: React.FC = () => {
         }
     };
 
+    // Fonction pour créer une image recadrée
+    const createCroppedImage = useCallback(async (): Promise<Blob> => {
+        if (!imageSrc || !croppedAreaPixels) {
+            throw new Error('Image source ou zone recadrée manquante');
+        }
+
+        const image = new Image();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        return new Promise((resolve, reject) => {
+            image.onload = () => {
+                const { x, y, width, height } = croppedAreaPixels;
+
+                canvas.width = width;
+                canvas.height = height;
+
+                if (ctx) {
+                    // Sauvegarder l'état du contexte
+                    ctx.save();
+
+                    // Translater vers le centre pour la rotation
+                    ctx.translate(width / 2, height / 2);
+                    ctx.rotate((rotation * Math.PI) / 180);
+                    ctx.translate(-width / 2, -height / 2);
+
+                    // Dessiner l'image recadrée
+                    ctx.drawImage(
+                        image,
+                        x,
+                        y,
+                        width,
+                        height,
+                        0,
+                        0,
+                        width,
+                        height
+                    );
+
+                    // Restaurer l'état du contexte
+                    ctx.restore();
+
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Erreur lors de la création du blob'));
+                        }
+                    }, 'image/jpeg', 0.9);
+                }
+            };
+            image.onerror = reject;
+            image.src = imageSrc;
+        });
+    }, [imageSrc, croppedAreaPixels, rotation]);
+
+    // Fonction appelée quand le recadrage change
+    const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: CroppedArea) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    }, []);
+
+    // Gestion de la sélection d'image avec recadrage
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = () => {
+                setImageSrc(reader.result as string);
+                setSelectedImage(file);
+                setIsCropModalOpen(true);
+                // Réinitialiser les paramètres de recadrage
+                setCrop({ x: 0, y: 0 });
+                setZoom(1);
+                setRotation(0);
+            };
+
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // Confirmer le recadrage
+    const handleConfirmCrop = async () => {
+        try {
+            if (croppedAreaPixels) {
+                const croppedImageBlob = await createCroppedImage();
+                const croppedFile = new File([croppedImageBlob], selectedImage?.name || 'cropped-image.jpg', {
+                    type: 'image/jpeg'
+                });
+                setSelectedImage(croppedFile);
+            }
+            setIsCropModalOpen(false);
+        } catch (error) {
+            console.error('Erreur lors du recadrage:', error);
+            alert('Erreur lors du recadrage de l\'image');
+        }
+    };
+
     const handleOpenModal = () => {
         setEditingAchievement(null);
         setFormData({ title: '', description: '' });
         setSelectedImage(null);
+        setImageSrc(null);
         setIsModalOpen(true);
     };
 
@@ -58,6 +179,13 @@ const Achievements: React.FC = () => {
         setEditingAchievement(null);
         setFormData({ title: '', description: '' });
         setSelectedImage(null);
+        setImageSrc(null);
+    };
+
+    const handleCloseCropModal = () => {
+        setIsCropModalOpen(false);
+        setSelectedImage(null);
+        setImageSrc(null);
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -66,12 +194,6 @@ const Achievements: React.FC = () => {
             ...prev,
             [name]: value
         }));
-    };
-
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setSelectedImage(e.target.files[0]);
-        }
     };
 
     const handleSubmit = async () => {
@@ -165,7 +287,6 @@ const Achievements: React.FC = () => {
                     </span>
                 </div>
 
-
                 {achievements.length === 0 ? (
                     <div className="text-center py-12">
                         <div className="text-base-content/40 mb-4">
@@ -179,7 +300,7 @@ const Achievements: React.FC = () => {
                         </p>
                         <button
                             onClick={handleOpenModal}
-                            className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors duration-200"
+                            className="px-4 py-2 bg-yellow-600 text-base-content rounded-md hover:bg-yellow-700 transition-colors duration-200"
                         >
                             Ajouter un exploit
                         </button>
@@ -217,13 +338,13 @@ const Achievements: React.FC = () => {
             {achievements.length > 0 && (
                 <button
                     onClick={handleOpenModal}
-                    className='rounded-full bg-yellow-600 w-max p-4 text-white fixed bottom-10 right-10 hover:bg-yellow-700 transition-colors duration-200 shadow-lg'
+                    className='rounded-full bg-yellow-600 w-max p-4 text-base-content fixed bottom-10 right-10 hover:bg-yellow-700 transition-colors duration-200 shadow-lg'
                 >
                     <Plus size={30} />
                 </button>
             )}
 
-            {/* Modal Add/Edit */}
+            {/* Modal principal Add/Edit */}
             <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
                 <div className="p-6">
                     <h2 className="text-2xl font-bold mb-6">{modalTitle}</h2>
@@ -246,7 +367,7 @@ const Achievements: React.FC = () => {
                                 name="title"
                                 value={formData.title}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                className="w-full px-3 py-2 border border-base-content/30 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
                                 placeholder="Entrez le titre de l'exploit"
                                 required
                             />
@@ -260,7 +381,7 @@ const Achievements: React.FC = () => {
                                 name="description"
                                 value={formData.description}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                className="w-full px-3 py-2 border border-base-content/30 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
                                 rows={4}
                                 placeholder="Décrivez votre exploit ou réalisation"
                                 required
@@ -275,11 +396,11 @@ const Achievements: React.FC = () => {
                                 type="file"
                                 accept="image/*"
                                 onChange={handleImageChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                className="file-input file-input-bordered w-full focus:outline-none focus:ring-2 focus:ring-yellow-500"
                             />
-                            {selectedImage && (
+                            {selectedImage && !isCropModalOpen && (
                                 <p className="mt-2 text-sm text-base-content/60">
-                                    Nouvelle image sélectionnée: {selectedImage.name}
+                                    Image sélectionnée: {selectedImage.name}
                                 </p>
                             )}
                             {editingAchievement?.image_url && !selectedImage && (
@@ -294,7 +415,7 @@ const Achievements: React.FC = () => {
                                 type="button"
                                 onClick={handleCloseModal}
                                 disabled={loading}
-                                className="px-4 py-2 text-base-content/60 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
+                                className="px-4 py-2 text-base-content/60 border border-base-content/30 rounded-md hover:bg-base-100 transition-colors duration-200 disabled:opacity-50"
                             >
                                 Annuler
                             </button>
@@ -302,13 +423,100 @@ const Achievements: React.FC = () => {
                                 type="button"
                                 onClick={handleSubmit}
                                 disabled={loading || !formData.title || !formData.description}
-                                className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                className="px-4 py-2 bg-yellow-600 text-base-content rounded-md hover:bg-yellow-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                             >
                                 {loading && <Loader className="animate-spin h-4 w-4" />}
                                 <span>{loading ? 'Chargement...' : submitButtonText}</span>
                             </button>
                         </div>
                     </form>
+                </div>
+            </Modal>
+
+            {/* Modal de recadrage */}
+            <Modal isOpen={isCropModalOpen} onClose={handleCloseCropModal}>
+                <div className="p-6">
+                    <h2 className="text-2xl font-bold mb-4">Recadrer l'image</h2>
+
+                    {imageSrc && (
+                        <div className="space-y-4">
+                            {/* Zone de recadrage */}
+                            <div className="relative h-64 w-full bg-base-200 rounded-lg overflow-hidden">
+                                <Cropper
+                                    image={imageSrc}
+                                    crop={crop}
+                                    zoom={zoom}
+                                    rotation={rotation}
+                                    aspect={4/3}
+                                    onCropChange={setCrop}
+                                    onZoomChange={setZoom}
+                                    onRotationChange={setRotation}
+                                    onCropComplete={onCropComplete}
+                                    objectFit="contain"
+                                />
+                            </div>
+
+                            {/* Contrôles de zoom */}
+                            <div className="space-y-3">
+                                <div className="flex items-center space-x-3">
+                                    <ZoomOut size={18} className="text-base-content/60" />
+                                    <input
+                                        type="range"
+                                        min={1}
+                                        max={3}
+                                        step={0.1}
+                                        value={zoom}
+                                        onChange={(e) => setZoom(Number(e.target.value))}
+                                        className="w-full h-2 bg-base-300 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                    <ZoomIn size={18} className="text-base-content/60" />
+                                </div>
+
+                                {/* Contrôle de rotation */}
+                                <div className="flex items-center space-x-3">
+                                    <RotateCcw size={18} className="text-base-content/60" />
+                                    <span className="text-sm text-base-content/70 min-w-[80px]">Rotation:</span>
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={360}
+                                        step={1}
+                                        value={rotation}
+                                        onChange={(e) => setRotation(Number(e.target.value))}
+                                        className="w-full h-2 bg-base-300 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                    <span className="text-sm text-base-content/70 min-w-[40px]">{rotation}°</span>
+                                </div>
+                            </div>
+
+                            {/* Informations */}
+                            {/* <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                                <p className="text-sm text-yellow-800">
+                                    💡 <strong>Conseil :</strong> Recadrez votre image pour mettre en valeur votre exploit.
+                                    Le format carré est optimisé pour l'affichage.
+                                </p>
+                            </div> */}
+
+                            {/* Actions */}
+                            <div className="flex justify-end space-x-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={handleCloseCropModal}
+                                    className="px-4 py-2 text-base-content/60 border border-base-content/30 rounded-md hover:bg-base-100 transition-colors duration-200"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmCrop}
+                                    className="px-4 py-2 bg-yellow-600 text-base-content rounded-md hover:bg-yellow-700 transition-colors duration-200 flex items-center space-x-2"
+                                >
+                                    <Trophy size={16} />
+                                    <span>Confirmer le recadrage</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </Modal>
         </ComponentsLayout>
