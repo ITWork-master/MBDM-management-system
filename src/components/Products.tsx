@@ -127,6 +127,8 @@ const Products: React.FC = () => {
     // Fonction appelée quand le recadrage change
     const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: CroppedArea) => {
         setCroppedAreaPixels(croppedAreaPixels);
+        console.log(croppedArea);
+        
     }, []);
 
     // Gestion de la sélection d'image avec recadrage
