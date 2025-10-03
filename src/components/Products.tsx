@@ -11,16 +11,24 @@ import type { Product, UpdateProductData } from '../types/type';
 
 // Types pour le recadrage
 interface Crop {
-  x: number;
-  y: number;
+    x: number;
+    y: number;
 }
 
 interface CroppedArea {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
 }
+
+// Helper function to validate product type
+const validateProductType = (type: string): 'electrique' | 'thermique' | 'climatisation' | 'ventilation' | 'froid' => {
+    if (type === 'electrique' || type === 'thermique' || type === 'climatisation' || type === 'ventilation' || type === 'froid') {
+        return type;
+    }
+    return 'electrique'; // default to 'electrique' for invalid types
+};
 
 const Products: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,10 +38,12 @@ const Products: React.FC = () => {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        type: '1'
+        type: 'electrique' as 'electrique' | 'thermique' | 'climatisation' | 'ventilation' | 'froid'
     });
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+    const [filterType, setFilterType] = useState<'all' | Product['type']>('all');
+    const [searchTerm, setSearchTerm] = useState('');
 
     // États pour le recadrage
     const [crop, setCrop] = useState<Crop>({ x: 0, y: 0 });
@@ -88,12 +98,12 @@ const Products: React.FC = () => {
                 if (ctx) {
                     // Sauvegarder l'état du contexte
                     ctx.save();
-                    
+
                     // Translater vers le centre pour la rotation
                     ctx.translate(width / 2, height / 2);
                     ctx.rotate((rotation * Math.PI) / 180);
                     ctx.translate(-width / 2, -height / 2);
-                    
+
                     // Dessiner l'image recadrée
                     ctx.drawImage(
                         image,
@@ -106,7 +116,7 @@ const Products: React.FC = () => {
                         width,
                         height
                     );
-                    
+
                     // Restaurer l'état du contexte
                     ctx.restore();
 
@@ -128,7 +138,7 @@ const Products: React.FC = () => {
     const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: CroppedArea) => {
         setCroppedAreaPixels(croppedAreaPixels);
         console.log(croppedArea);
-        
+
     }, []);
 
     // Gestion de la sélection d'image avec recadrage
@@ -136,7 +146,7 @@ const Products: React.FC = () => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
-            
+
             reader.onload = () => {
                 setImageSrc(reader.result as string);
                 setSelectedImage(file);
@@ -146,7 +156,7 @@ const Products: React.FC = () => {
                 setZoom(1);
                 setRotation(0);
             };
-            
+
             reader.readAsDataURL(file);
         }
     };
@@ -170,7 +180,7 @@ const Products: React.FC = () => {
 
     const handleOpenModal = () => {
         setEditingProduct(null);
-        setFormData({ title: '', description: '', type: '1' });
+        setFormData({ title: '', description: '', type: 'electrique' });
         setSelectedImage(null);
         setImageSrc(null);
         setIsModalOpen(true);
@@ -179,7 +189,7 @@ const Products: React.FC = () => {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setEditingProduct(null);
-        setFormData({ title: '', description: '', type: '1' });
+        setFormData({ title: '', description: '', type: 'electrique' });
         setSelectedImage(null);
         setImageSrc(null);
     };
@@ -200,10 +210,18 @@ const Products: React.FC = () => {
 
     const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        if (name === 'type') {
+            const validType = validateProductType(value);
+            setFormData(prev => ({
+                ...prev,
+                [name]: validType
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
     };
 
     const handleSubmit = async () => {
@@ -247,10 +265,11 @@ const Products: React.FC = () => {
 
     const handleEditProduct = (product: Product) => {
         setEditingProduct(product);
+        const validType = validateProductType(product.type);
         setFormData({
             title: product.title,
             description: product.description || '',
-            type: product.type
+            type: validType
         });
         setIsModalOpen(true);
     };
@@ -267,6 +286,15 @@ const Products: React.FC = () => {
 
     const modalTitle = editingProduct ? 'Modifier le produit' : 'Ajouter un produit';
     const submitButtonText = editingProduct ? 'Modifier le produit' : 'Ajouter le produit';
+
+    // Filtrer les produits par type et terme de recherche
+    const filteredProducts = products.filter(product => {
+        const matchesType = filterType === 'all' || product.type === filterType;
+        const matchesSearch = searchTerm === '' ||
+            product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+        return matchesType && matchesSearch;
+    });
 
     if (isLoadingProducts) {
         return (
@@ -290,10 +318,87 @@ const Products: React.FC = () => {
             <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-base-content/90">Mes Produits</h1>
+
+                    {/* Barre de recherche */}
+                    <div className="">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Rechercher un produit..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full input focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                    </div>
+
+
                     <span className="text-base-content/60">
-                        {products.length} produit{products.length > 1 ? 's' : ''}
+                        {filteredProducts.length} produit{filteredProducts.length > 1 ? 's' : ''}
+                        {filterType !== 'all' && ` (filtrés)`}
                     </span>
                 </div>
+
+                {/* Filtre par type */}
+                <div className="mb-6">
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => setFilterType('all')}
+                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${filterType === 'all'
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-base-200 text-base-content/70 hover:bg-base-300'
+                                }`}
+                        >
+                            Tous
+                        </button>
+                        <button
+                            onClick={() => setFilterType('electrique')}
+                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${filterType === 'electrique'
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-base-200 text-base-content/70 hover:bg-base-300'
+                                }`}
+                        >
+                            Électrique
+                        </button>
+                        <button
+                            onClick={() => setFilterType('thermique')}
+                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${filterType === 'thermique'
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-base-200 text-base-content/70 hover:bg-base-300'
+                                }`}
+                        >
+                            Thermique
+                        </button>
+                        <button
+                            onClick={() => setFilterType('climatisation')}
+                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${filterType === 'climatisation'
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-base-200 text-base-content/70 hover:bg-base-300'
+                                }`}
+                        >
+                            Climatisation
+                        </button>
+                        <button
+                            onClick={() => setFilterType('ventilation')}
+                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${filterType === 'ventilation'
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-base-200 text-base-content/70 hover:bg-base-300'
+                                }`}
+                        >
+                            Ventilation
+                        </button>
+                        <button
+                            onClick={() => setFilterType('froid')}
+                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${filterType === 'froid'
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-base-200 text-base-content/70 hover:bg-base-300'
+                                }`}
+                        >
+                            Froid
+                        </button>
+                    </div>
+                </div>
+
 
                 {products.length === 0 ? (
                     <div className="text-center py-12">
@@ -317,7 +422,7 @@ const Products: React.FC = () => {
                     <div>
                         {/* Version Desktop */}
                         <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                            {products.map((product) => (
+                            {filteredProducts.map((product) => (
                                 <ProductCard
                                     key={product.id}
                                     product={product}
@@ -329,7 +434,7 @@ const Products: React.FC = () => {
 
                         {/* Version Mobile */}
                         <div className="md:hidden space-y-3">
-                            {products.map((product) => (
+                            {filteredProducts.map((product) => (
                                 <ProductCard
                                     key={product.id}
                                     product={product}
@@ -390,8 +495,11 @@ const Products: React.FC = () => {
                                     onChange={handleTypeChange}
                                     required
                                 >
-                                    <option value="1">Type 1</option>
-                                    <option value="2">Type 2</option>
+                                    <option value="electrique">Électrique</option>
+                                    <option value="thermique">Thermique</option>
+                                    <option value="climatisation">Climatisation</option>
+                                    <option value="ventilation">Ventilation</option>
+                                    <option value="froid">Froid</option>
                                 </select>
                             </div>
                         </div>
@@ -460,7 +568,7 @@ const Products: React.FC = () => {
             <Modal isOpen={isCropModalOpen} onClose={handleCloseCropModal}>
                 <div className="p-6">
                     <h2 className="text-2xl font-bold mb-4">Recadrer l'image</h2>
-                    
+
                     {imageSrc && (
                         <div className="space-y-4">
                             {/* Zone de recadrage */}

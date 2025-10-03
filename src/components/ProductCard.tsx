@@ -19,7 +19,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDelete }) 
     };
 
     const handleDelete = () => {
-        if (window.confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
+        if (confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
             onDelete(product.id);
         }
     };
@@ -85,8 +85,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDelete }) 
                             </div>
                             
                             {/* Type badge compact */}
-                            <span className="inline-flex px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full whitespace-nowrap flex-shrink-0">
-                                T{product.type}
+                            <span className="badge badge-secondary badge-outline capitalize">
+                                {product.type}
                             </span>
                         </div>
 

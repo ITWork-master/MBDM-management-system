@@ -33,6 +33,7 @@ const Achievements: React.FC = () => {
     });
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [isLoadingAchievements, setIsLoadingAchievements] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // États pour le recadrage
     const [crop, setCrop] = useState<Crop>({ x: 0, y: 0 });
@@ -67,6 +68,17 @@ const Achievements: React.FC = () => {
             setIsLoadingAchievements(false);
         }
     };
+
+    // Filtrer les exploits en fonction du terme de recherche
+    const filteredAchievements = achievements.filter(achievement => {
+        if (!searchTerm) return true;
+        
+        const searchLower = searchTerm.toLowerCase();
+        return (
+            achievement.title.toLowerCase().includes(searchLower) ||
+            (achievement.description && achievement.description.toLowerCase().includes(searchLower))
+        );
+    });
 
     // Fonction pour créer une image recadrée
     const createCroppedImage = useCallback(async (): Promise<Blob> => {
@@ -281,8 +293,20 @@ const Achievements: React.FC = () => {
 
             {/* Liste des exploits */}
             <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <h1 className="text-2xl font-bold text-base-content/90">Mes Exploits</h1>
+                    
+                    {/* Barre de recherche */}
+                    <div className="relative w-full sm:w-64">
+                        <input
+                            type="text"
+                            placeholder="Rechercher un exploit..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full input focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                        />
+                    </div>
+                    
                     <span className="text-base-content/60">
                         {achievements.length} exploit{achievements.length > 1 ? 's' : ''}
                     </span>
@@ -308,29 +332,40 @@ const Achievements: React.FC = () => {
                     </div>
                 ) : (
                     <div>
-                        {/* Version Desktop - Grille compacte responsive */}
-                        <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                            {achievements.map((achievement) => (
-                                <AchievementCard
-                                    key={achievement.id}
-                                    achievement={achievement}
-                                    onEdit={handleEditAchievement}
-                                    onDelete={handleDeleteAchievement}
-                                />
-                            ))}
-                        </div>
+                        {/* Filtrage des exploits */}
+                        {filteredAchievements.length === 0 && searchTerm ? (
+                            <div className="text-center py-8">
+                                <p className="text-base-content/60">
+                                    Aucun exploit trouvé pour "{searchTerm}"
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Version Desktop - Grille compacte responsive */}
+                                <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                                    {filteredAchievements.map((achievement) => (
+                                        <AchievementCard
+                                            key={achievement.id}
+                                            achievement={achievement}
+                                            onEdit={handleEditAchievement}
+                                            onDelete={handleDeleteAchievement}
+                                        />
+                                    ))}
+                                </div>
 
-                        {/* Version Mobile - Liste compacte */}
-                        <div className="md:hidden space-y-3">
-                            {achievements.map((achievement) => (
-                                <AchievementCard
-                                    key={achievement.id}
-                                    achievement={achievement}
-                                    onEdit={handleEditAchievement}
-                                    onDelete={handleDeleteAchievement}
-                                />
-                            ))}
-                        </div>
+                                {/* Version Mobile - Liste compacte */}
+                                <div className="md:hidden space-y-3">
+                                    {filteredAchievements.map((achievement) => (
+                                        <AchievementCard
+                                            key={achievement.id}
+                                            achievement={achievement}
+                                            onEdit={handleEditAchievement}
+                                            onDelete={handleDeleteAchievement}
+                                        />
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
