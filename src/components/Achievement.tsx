@@ -483,7 +483,7 @@ const Achievements: React.FC = () => {
                                     crop={crop}
                                     zoom={zoom}
                                     rotation={rotation}
-                                    aspect={4/3}
+                                    aspect={5/3}
                                     onCropChange={setCrop}
                                     onZoomChange={setZoom}
                                     onRotationChange={setRotation}
