@@ -10,14 +10,19 @@ interface AuthContextType extends AuthState {
     logout: () => Promise<void>;
     changePassword: (newPassword: string) => Promise<void>;
     changeTheme: (theme: string) => Promise<void>;
-    setView: (view: AppView) => void;
+    setView: (view: AppView, addToHistory?: boolean) => void;
     currentView: AppView;
     setLoading: (loading: boolean) => void;
     loading: boolean;
     clearError: () => void;
+    goBack: () => void;
+    canGoBack: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Historique des vues
+const viewHistory: AppView[] = [];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [authState, setAuthState] = useState<AuthState>({
@@ -28,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     const [loading, setLoading] = useState<boolean>(true);
     const [currentView, setCurrentView] = useState<AppView>('login');
+    const [canGoBack, setCanGoBack] = useState<boolean>(false);
 
     // Fonction utilitaire pour mettre à jour l'état
     const updateAuthState = (updates: Partial<AuthState>) => {
@@ -44,6 +50,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Fonction pour effacer les erreurs
     const clearError = () => {
         updateAuthState({ error: null });
+    };
+
+    // Fonction pour naviguer vers une vue
+    const setView = (view: AppView, addToHistory: boolean = true) => {
+        clearError();
+
+        if (addToHistory && view !== currentView) {
+            viewHistory.push(currentView);
+            setCanGoBack(viewHistory.length > 0);
+
+            // Mettre à jour l'URL dans l'historique du navigateur
+            window.history.pushState({ view }, '', `#${view}`);
+        }
+
+        if (authState.userTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', "cupcake");
+        } else {
+            document.documentElement.setAttribute('data-theme', "dark");
+        }
+
+        setLoading(true);
+        setTimeout(() => {
+            setCurrentView(view);
+            setLoading(false);
+        }, 500);
+    };
+
+    // Fonction pour retourner en arrière
+    const goBack = () => {
+        if (viewHistory.length > 0) {
+            const previousView = viewHistory.pop() as AppView;
+            setCanGoBack(viewHistory.length > 0);
+
+            // Revenir à l'état précédent dans l'historique du navigateur
+            window.history.back();
+
+            setView(previousView, false);
+        } else {
+            // Si pas d'historique, aller à la vue par défaut
+            setView('login', false);
+        }
+    };
+
+    // Gestionnaire d'événement pour le bouton retour du navigateur
+    const handlePopState = (event: PopStateEvent) => {
+        if (viewHistory.length > 0) {
+            const previousView = viewHistory.pop() as AppView;
+            setCanGoBack(viewHistory.length > 0);
+
+            setLoading(true);
+            setTimeout(() => {
+                setCurrentView(previousView);
+                setLoading(false);
+            }, 500);
+        } else if (currentView !== 'login') {
+            // Si on est pas sur la vue login et qu'on n'a pas d'historique, aller au login
+            setView('login', false);
+        }
+        // Si on est sur login et qu'on n'a pas d'historique, empêcher de quitter l'app
+        event.preventDefault();
+    };
+
+    // Gestionnaire pour beforeunload (quand l'utilisateur essaie de quitter la page)
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+        if (currentView !== 'login') {
+            // Demander confirmation seulement si on n'est pas sur la page de login
+            event.preventDefault();
+            event.returnValue = 'Voulez-vous vraiment quitter cette page ?';
+            return 'Voulez-vous vraiment quitter cette page ?';
+        }
     };
 
     useEffect(() => {
@@ -76,7 +152,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 else document.documentElement.setAttribute('data-theme', "dark");
 
                 if (session?.user) {
-                    setCurrentView('dashboard');
+                    setView('dashboard', true);
+                } else {
+                    // Initialiser l'historique du navigateur
+                    window.history.replaceState({ view: 'login' }, '', '#login');
                 }
             } catch (error) {
                 handleError(error, 'Erreur inattendue lors de l\'initialisation de l\'auth');
@@ -87,6 +166,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         initializeAuth();
 
+        // Ajouter les écouteurs d'événements
+        window.addEventListener('popstate', handlePopState);
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 console.log(event);
@@ -96,14 +179,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 });
 
                 if (session?.user) {
-                    setCurrentView('dashboard');
+                    setView('dashboard', true);
                 } else {
-                    setCurrentView('login');
+                    // Réinitialiser l'historique quand on se déconnecte
+                    viewHistory.length = 0;
+                    setCanGoBack(false);
+                    setView('login', true);
                 }
             }
         );
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            window.removeEventListener('popstate', handlePopState);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
     }, []);
 
     const login = async (email: string, password: string) => {
@@ -143,8 +233,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             await registerNewUser(email, password, name);
 
-            // On ne change pas directement la vue ici, on attend la confirmation email si nécessaire
-            // L'utilisateur sera redirigé vers le login après confirmation
+            // Après inscription, on peut rediriger vers login
+            setView('login', true);
 
         } catch (error: any) {
             handleError(error, "Erreur d'inscription");
@@ -157,7 +247,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             setLoading(true);
             clearError();
-            updatePassword(newPassword);
+            await updatePassword(newPassword);
         } catch (error: any) {
             handleError(error, 'Erreur lors du changement de mot de passe');
         } finally {
@@ -169,26 +259,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             setLoading(true);
             clearError();
-            logoutUser();
+            await logoutUser();
         } catch (error: any) {
             handleError(error, 'Erreur de déconnexion');
         } finally {
             setLoading(false);
         }
-    };
-
-    const setView = (view: AppView) => {
-        clearError();
-        if (authState.userTheme === 'light') {
-            document.documentElement.setAttribute('data-theme', "cupcake");
-        } else {
-            document.documentElement.setAttribute('data-theme', "dark");
-        }
-        setLoading(true)
-        setTimeout(() => {
-            setCurrentView(view);
-            setLoading(false)
-        }, 500)
     };
 
     const changeTheme = async (theme: string) => {
@@ -235,6 +311,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 currentView,
                 setLoading,
                 clearError,
+                goBack,
+                canGoBack,
             }}
         >
             {children}
