@@ -85,7 +85,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDelete }) 
                             </div>
                             
                             {/* Type badge compact */}
-                            <span className="badge badge-secondary badge-outline capitalize">
+                            <span className="badge badge-primary badge-outline capitalize">
                                 {product.type}
                             </span>
                         </div>
