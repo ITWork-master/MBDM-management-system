@@ -23,14 +23,14 @@ const DASHBOARD_ITEMS: DashboardItem[] = [
     },
     {
         id: 'testimonials',
-        label: 'Témoignage',
+        label: 'Témoignages',
         icon: MessageCircleDashed,
         view: 'testimonials',
         hoverColor: 'hover:shadow-green-500/50 hover:border-green-500 hover:text-green-500'
     },
     {
         id: 'achievements',
-        label: 'Exploits',
+        label: 'Interventions',
         icon: Trophy,
         view: 'achievements',
         hoverColor: 'hover:shadow-yellow-500/50 hover:border-yellow-500 hover:text-yellow-500'

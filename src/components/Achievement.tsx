@@ -52,7 +52,7 @@ const Achievements: React.FC = () => {
         error
     } = useAchievements();
 
-    // Charger les exploits au montage du composant
+    // Charger les interventions au montage du composant
     useEffect(() => {
         loadAchievements();
     }, []);
@@ -63,13 +63,13 @@ const Achievements: React.FC = () => {
             const achievementsData = await getAchievements();
             setAchievements(achievementsData);
         } catch (err) {
-            console.error('Erreur lors du chargement des exploits:', err);
+            console.error('Erreur lors du chargement des interventions:', err);
         } finally {
             setIsLoadingAchievements(false);
         }
     };
 
-    // Filtrer les exploits en fonction du terme de recherche
+    // Filtrer les interventions en fonction du terme de recherche
     const filteredAchievements = achievements.filter(achievement => {
         if (!searchTerm) return true;
         
@@ -219,7 +219,7 @@ const Achievements: React.FC = () => {
             }
 
             if (editingAchievement) {
-                // Mise à jour de l'exploit existant
+                // Mise à jour de l'intervention existant
                 const updateData: UpdateAchievementData = {
                     title: formData.title,
                     description: formData.description,
@@ -230,18 +230,16 @@ const Achievements: React.FC = () => {
                 }
 
                 await updateAchievement(editingAchievement.id, updateData);
-                alert('Exploit modifié avec succès!');
             } else {
-                // Création d'un nouvel exploit
+                // Création d'un nouvel intervention
                 await createAchievement({
                     title: formData.title,
                     description: formData.description,
                     image_url: imageUrl,
                 });
-                alert('Exploit créé avec succès!');
             }
 
-            // Recharger les exploits et fermer le modal
+            // Recharger les interventions et fermer le modal
             await loadAchievements();
             handleCloseModal();
 
@@ -263,24 +261,23 @@ const Achievements: React.FC = () => {
         try {
             await deleteAchievement(achievementId);
             await loadAchievements();
-            alert('Exploit supprimé avec succès!');
         } catch (err) {
             console.error('Erreur lors de la suppression:', err);
         }
     };
 
-    const modalTitle = editingAchievement ? 'Modifier l\'exploit' : 'Ajouter un exploit';
-    const submitButtonText = editingAchievement ? 'Modifier l\'exploit' : 'Ajouter l\'exploit';
+    const modalTitle = editingAchievement ? 'Modifier l\'intervention' : 'Ajouter un intervention';
+    const submitButtonText = editingAchievement ? 'Modifier l\'intervention' : 'Ajouter l\'intervention';
 
     // État de chargement principal
     if (isLoadingAchievements) {
         return (
             <ComponentsLayout className='overflow-clip'>
-                <Navbar sectionName='Exploits' />
+                <Navbar sectionName='Interventions' />
                 <div className="flex justify-center items-center h-64">
                     <div className="text-center">
                         <Loader className="animate-spin h-12 w-12 text-yellow-600 mx-auto mb-4" />
-                        <p className="text-base-content/60">Chargement des exploits...</p>
+                        <p className="text-base-content/60">Chargement des interventions...</p>
                     </div>
                 </div>
             </ComponentsLayout>
@@ -289,18 +286,18 @@ const Achievements: React.FC = () => {
 
     return (
         <ComponentsLayout className='overflow-clip'>
-            <Navbar sectionName='Exploits' />
+            <Navbar sectionName='Interventions' />
 
-            {/* Liste des exploits */}
+            {/* Liste des interventions */}
             <div className="p-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                    <h1 className="text-2xl font-bold text-base-content/90">Mes Exploits</h1>
+                    <h1 className="text-2xl font-bold text-base-content/90">Mes Interventions</h1>
                     
                     {/* Barre de recherche */}
                     <div className="relative w-full sm:w-64">
                         <input
                             type="text"
-                            placeholder="Rechercher un exploit..."
+                            placeholder="Rechercher un intervention..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full input focus:outline-none focus:ring-2 focus:ring-yellow-500"
@@ -308,7 +305,7 @@ const Achievements: React.FC = () => {
                     </div>
                     
                     <span className="text-base-content/60">
-                        {achievements.length} exploit{achievements.length > 1 ? 's' : ''}
+                        {achievements.length} intervention{achievements.length > 1 ? 's' : ''}
                     </span>
                 </div>
 
@@ -318,25 +315,25 @@ const Achievements: React.FC = () => {
                             <Trophy size={48} className="mx-auto" />
                         </div>
                         <h3 className="text-lg font-medium text-base-content/90 mb-2">
-                            Aucun exploit
+                            Aucun intervention
                         </h3>
                         <p className="text-base-content/60 mb-4">
-                            Commencez par ajouter votre premier exploit ou réalisation.
+                            Commencez par ajouter votre premier intervention ou réalisation.
                         </p>
                         <button
                             onClick={handleOpenModal}
                             className="px-4 py-2 bg-yellow-600 text-base-content rounded-md hover:bg-yellow-700 transition-colors duration-200"
                         >
-                            Ajouter un exploit
+                            Ajouter un intervention
                         </button>
                     </div>
                 ) : (
                     <div>
-                        {/* Filtrage des exploits */}
+                        {/* Filtrage des interventions */}
                         {filteredAchievements.length === 0 && searchTerm ? (
                             <div className="text-center py-8">
                                 <p className="text-base-content/60">
-                                    Aucun exploit trouvé pour "{searchTerm}"
+                                    Aucun intervention trouvé pour "{searchTerm}"
                                 </p>
                             </div>
                         ) : (
@@ -396,7 +393,7 @@ const Achievements: React.FC = () => {
                     <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                         <div>
                             <label className="block text-sm font-medium text-base-content/70 mb-2">
-                                Titre de l'exploit *
+                                Titre de l'intervention *
                             </label>
                             <input
                                 type="text"
@@ -404,7 +401,7 @@ const Achievements: React.FC = () => {
                                 value={formData.title}
                                 onChange={handleInputChange}
                                 className="w-full px-3 py-2 border border-base-content/30 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                placeholder="Entrez le titre de l'exploit"
+                                placeholder="Entrez le titre de l'intervention"
                                 required
                             />
                         </div>
@@ -419,14 +416,14 @@ const Achievements: React.FC = () => {
                                 onChange={handleInputChange}
                                 className="w-full px-3 py-2 border border-base-content/30 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
                                 rows={4}
-                                placeholder="Décrivez votre exploit ou réalisation"
+                                placeholder="Décrivez votre intervention ou réalisation"
                                 required
                             />
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-base-content/70 mb-2">
-                                Image de l'exploit
+                                Image de l'intervention
                             </label>
                             <input
                                 type="file"
@@ -528,7 +525,7 @@ const Achievements: React.FC = () => {
                             {/* Informations */}
                             {/* <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
                                 <p className="text-sm text-yellow-800">
-                                    💡 <strong>Conseil :</strong> Recadrez votre image pour mettre en valeur votre exploit.
+                                    💡 <strong>Conseil :</strong> Recadrez votre image pour mettre en valeur votre intervention.
                                     Le format carré est optimisé pour l'affichage.
                                 </p>
                             </div> */}

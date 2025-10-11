@@ -244,7 +244,6 @@ const Products: React.FC = () => {
                 }
 
                 await updateProduct(editingProduct.id, updateData);
-                alert('Produit modifié avec succès!');
             } else {
                 await createProduct({
                     title: formData.title,
@@ -252,7 +251,6 @@ const Products: React.FC = () => {
                     type: formData.type,
                     image_url: imageUrl,
                 });
-                alert('Produit créé avec succès!');
             }
 
             await loadProducts();
@@ -278,7 +276,6 @@ const Products: React.FC = () => {
         try {
             await deleteProduct(productId);
             await loadProducts();
-            alert('Produit supprimé avec succès!');
         } catch (err) {
             console.error('Erreur lors de la suppression:', err);
         }

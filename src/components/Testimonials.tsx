@@ -74,14 +74,12 @@ const Testimonials: React.FC = () => {
                 };
 
                 await updateTestimonial(editingTestimonial.id, updateData);
-                alert('Témoignage modifié avec succès!');
             } else {
                 // Création d'un nouveau témoignage
                 await createTestimonial({
                     client_name: formData.client_name,
                     message: formData.message,
                 });
-                alert('Témoignage créé avec succès!');
             }
 
             // Recharger les témoignages et fermer le modal
@@ -106,9 +104,9 @@ const Testimonials: React.FC = () => {
         try {
             await deleteTestimonial(testimonialId);
             await loadTestimonials();
-            alert('Témoignage supprimé avec succès!');
         } catch (err) {
             console.error('Erreur lors de la suppression:', err);
+            alert('Erreur lors de la suppression du témoignage. Veuillez réessayer.');
         }
     };
 

@@ -23,7 +23,7 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
     };
 
     const handleDelete = () => {
-        if (window.confirm('Êtes-vous sûr de vouloir supprimer cet exploit ?')) {
+        if (window.confirm('Êtes-vous sûr de vouloir supprimer cet intervention ?')) {
             onDelete(achievement.id);
         }
     };
@@ -60,7 +60,7 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
                             <div className="w-full aspect-[4/3] rounded-md bg-gradient-to-br from-yellow-50 to-amber-100 flex items-center justify-center border border-amber-200">
                                 <div className="text-center">
                                     <Trophy size={32} className="text-amber-400 mx-auto mb-1" />
-                                    <span className="text-xs text-amber-600 font-medium">Exploit</span>
+                                    <span className="text-xs text-amber-600 font-medium">Intervention</span>
                                 </div>
                             </div>
                         )}
