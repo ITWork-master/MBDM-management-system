@@ -1,0 +1,6 @@
+# Scripts de build autorisés. esbuild et @tailwindcss/oxide installent chacun un
+# binaire natif ; sans cette autorisation, pnpm 10 les ignore et le build échoue.
+# Fichier généré par `pnpm install`, valeurs renseignées ici.
+allowBuilds:
+  '@tailwindcss/oxide': true
+  esbuild: true
