@@ -1,329 +1,307 @@
 // src/context/AuthContext.tsx
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { AuthState, AppView } from '../types/type';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase/Supabase';
-import { loginUser, logoutUser, registerNewUser, updatePassword, updateUserTheme } from '../services/supabase.service';
+import {
+    fetchProfile,
+    loginUser,
+    logoutUser,
+    registerNewUser,
+    updatePassword,
+    updateUserTheme,
+} from '../services/auth.service';
+import { applyTheme, DEFAULT_THEME } from '../lib/theme';
+import { toMessage } from '../lib/errors';
+import { AuthContext } from './useAuth';
+import { APP_VIEWS, PUBLIC_VIEWS } from '../types/type';
+import type { AppView, ThemeName } from '../types/type';
 
-interface AuthContextType extends AuthState {
-    login: (email: string, password: string) => Promise<void>;
-    register: (email: string, password: string, name: string) => Promise<void>;
-    logout: () => Promise<void>;
-    changePassword: (newPassword: string) => Promise<void>;
-    changeTheme: (theme: string) => Promise<void>;
-    setView: (view: AppView, addToHistory?: boolean) => void;
-    currentView: AppView;
-    setLoading: (loading: boolean) => void;
-    loading: boolean;
-    clearError: () => void;
-    goBack: () => void;
-    canGoBack: boolean;
+const isAppView = (value: unknown): value is AppView =>
+    APP_VIEWS.includes(value as AppView);
+
+/** Vue demandée par le fragment d'URL, si elle est reconnue. */
+const viewFromHash = (): AppView | null => {
+    const hash = window.location.hash.replace(/^#/, '');
+    return isAppView(hash) ? hash : null;
+};
+
+interface HistoryEntry {
+    view?: unknown;
+    depth?: unknown;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Historique des vues
-const viewHistory: AppView[] = [];
+const historyDepth = (): number => {
+    const { depth } = (window.history.state ?? {}) as HistoryEntry;
+    return typeof depth === 'number' ? depth : 0;
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [authState, setAuthState] = useState<AuthState>({
-        user: null,
-        userName: null,
-        userTheme: 'light',
-        error: null,
-    });
-    const [loading, setLoading] = useState<boolean>(true);
-    const [currentView, setCurrentView] = useState<AppView>('login');
-    const [canGoBack, setCanGoBack] = useState<boolean>(false);
+    const [user, setUser] = useState<User | null>(null);
+    const [userName, setUserName] = useState<string | null>(null);
+    const [userTheme, setUserTheme] = useState<ThemeName>(DEFAULT_THEME);
+    const [error, setError] = useState<string | null>(null);
+    const [initializing, setInitializing] = useState(true);
+    const [pending, setPending] = useState(false);
+    const [currentView, setCurrentView] = useState<AppView>(() => viewFromHash() ?? 'login');
+    const [canGoBack, setCanGoBack] = useState(false);
 
-    // Fonction utilitaire pour mettre à jour l'état
-    const updateAuthState = (updates: Partial<AuthState>) => {
-        setAuthState(prev => ({ ...prev, ...updates }));
-    };
+    // Reflet synchrone de `currentView`, pour comparer sans dépendre du rendu.
+    const currentViewRef = useRef<AppView>(currentView);
 
-    // Fonction pour gérer les erreurs de manière cohérente
-    const handleError = (error: any, defaultMessage: string) => {
-        const errorMessage = error?.message || defaultMessage;
-        updateAuthState({ error: errorMessage });
-        console.error(defaultMessage, error);
-    };
+    const clearError = useCallback(() => setError(null), []);
 
-    // Fonction pour effacer les erreurs
-    const clearError = () => {
-        updateAuthState({ error: null });
-    };
+    // -- Navigation ---------------------------------------------------------
+    //
+    // L'état de navigation vit dans `window.history`, et nulle part ailleurs.
+    // La version précédente maintenait en parallèle un tableau `viewHistory`
+    // déclaré au niveau du module : il survivait aux démontages, grossissait
+    // indéfiniment, et `goBack()` le dépilait *puis* appelait
+    // `window.history.back()`, ce qui déclenchait `popstate` et le dépilait une
+    // seconde fois — d'où deux vues sautées à chaque retour.
 
-    // Fonction pour naviguer vers une vue
-    const setView = (view: AppView, addToHistory: boolean = true) => {
-        clearError();
+    const navigate = useCallback((view: AppView, replace: boolean) => {
+        if (currentViewRef.current === view && !replace) return;
 
-        if (addToHistory && view !== currentView) {
-            viewHistory.push(currentView);
-            setCanGoBack(viewHistory.length > 0);
+        const depth = replace ? 0 : historyDepth() + 1;
+        const entry = { view, depth };
+        const url = `#${view}`;
 
-            // Mettre à jour l'URL dans l'historique du navigateur
-            window.history.pushState({ view }, '', `#${view}`);
+        if (replace) window.history.replaceState(entry, '', url);
+        else window.history.pushState(entry, '', url);
+
+        currentViewRef.current = view;
+        setCurrentView(view);
+        setCanGoBack(depth > 0);
+        setError(null);
+    }, []);
+
+    const setView = useCallback((view: AppView) => navigate(view, false), [navigate]);
+    const replaceView = useCallback((view: AppView) => navigate(view, true), [navigate]);
+
+    const goBack = useCallback(() => {
+        if (historyDepth() > 0) window.history.back();
+        else replaceView('dashboard');
+    }, [replaceView]);
+
+    // Ancre l'entrée d'historique initiale, pour que `popstate` ait un état à lire.
+    useEffect(() => {
+        if (!window.history.state) {
+            window.history.replaceState(
+                { view: currentViewRef.current, depth: 0 },
+                '',
+                `#${currentViewRef.current}`,
+            );
         }
-
-        if (authState.userTheme === 'light') {
-            document.documentElement.setAttribute('data-theme', "cupcake");
-        } else {
-            document.documentElement.setAttribute('data-theme', "dark");
-        }
-
-        setLoading(true);
-        setTimeout(() => {
-            setCurrentView(view);
-            setLoading(false);
-        }, 500);
-    };
-
-    // Fonction pour retourner en arrière
-    const goBack = () => {
-        if (viewHistory.length > 0) {
-            const previousView = viewHistory.pop() as AppView;
-            setCanGoBack(viewHistory.length > 0);
-
-            // Revenir à l'état précédent dans l'historique du navigateur
-            window.history.back();
-
-            setView(previousView, false);
-        } else {
-            // Si pas d'historique, aller à la vue par défaut
-            setView('login', false);
-        }
-    };
-
-    // Gestionnaire d'événement pour le bouton retour du navigateur
-    const handlePopState = (event: PopStateEvent) => {
-        if (viewHistory.length > 0) {
-            const previousView = viewHistory.pop() as AppView;
-            setCanGoBack(viewHistory.length > 0);
-
-            setLoading(true);
-            setTimeout(() => {
-                setCurrentView(previousView);
-                setLoading(false);
-            }, 500);
-        } else if (currentView !== 'login') {
-            // Si on est pas sur la vue login et qu'on n'a pas d'historique, aller au login
-            setView('login', false);
-        }
-        // Si on est sur login et qu'on n'a pas d'historique, empêcher de quitter l'app
-        event.preventDefault();
-    };
-
-    // Gestionnaire pour beforeunload (quand l'utilisateur essaie de quitter la page)
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-        if (currentView !== 'login') {
-            // Demander confirmation seulement si on n'est pas sur la page de login
-            event.preventDefault();
-            event.returnValue = 'Voulez-vous vraiment quitter cette page ?';
-            return 'Voulez-vous vraiment quitter cette page ?';
-        }
-    };
+    }, []);
 
     useEffect(() => {
-        const initializeAuth = async () => {
-            try {
-                setLoading(true);
-                const { data: { session }, error } = await supabase.auth.getSession();
+        const handlePopState = (event: PopStateEvent) => {
+            const state = (event.state ?? {}) as HistoryEntry;
+            const view = isAppView(state.view) ? state.view : (viewFromHash() ?? 'login');
 
-                if (error) {
-                    handleError(error, 'Erreur lors de la vérification de la session');
-                    return;
-                }
-
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session?.user.id)
-                    .maybeSingle();
-
-                if (profileError) {
-                    throw new Error(`Erreur chargement profil: ${profileError.message}`);
-                }
-
-                updateAuthState({
-                    user: session?.user ?? null,
-                    userTheme: profile?.theme
-                });
-
-                if (profile?.theme === 'light') document.documentElement.setAttribute('data-theme', "cupcake")
-                else document.documentElement.setAttribute('data-theme', "dark");
-
-                if (session?.user) {
-                    setView('dashboard', true);
-                } else {
-                    // Initialiser l'historique du navigateur
-                    window.history.replaceState({ view: 'login' }, '', '#login');
-                }
-            } catch (error) {
-                handleError(error, 'Erreur inattendue lors de l\'initialisation de l\'auth');
-            } finally {
-                setLoading(false);
-            }
+            currentViewRef.current = view;
+            setCurrentView(view);
+            setCanGoBack(typeof state.depth === 'number' && state.depth > 0);
+            setError(null);
         };
 
-        initializeAuth();
-
-        // Ajouter les écouteurs d'événements
         window.addEventListener('popstate', handlePopState);
-        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-                console.log(event);
-                updateAuthState({
-                    user: session?.user ?? null,
-                    error: null,
-                });
+    // -- Session ------------------------------------------------------------
 
-                if (session?.user) {
-                    setView('dashboard', true);
-                } else {
-                    // Réinitialiser l'historique quand on se déconnecte
-                    viewHistory.length = 0;
-                    setCanGoBack(false);
-                    setView('login', true);
-                }
-            }
-        );
+    useEffect(() => {
+        let active = true;
+
+        // Conserve la référence précédente quand l'utilisateur est le même, pour
+        // qu'un simple rafraîchissement de jeton ne relance pas les effets.
+        const applySession = (next: User | null) =>
+            setUser((previous) => (previous?.id === next?.id ? previous : next));
+
+        supabase.auth
+            .getSession()
+            .then(({ data, error: sessionError }) => {
+                if (!active) return;
+                if (sessionError) setError(toMessage(sessionError, 'Session illisible'));
+                applySession(data.session?.user ?? null);
+            })
+            .finally(() => {
+                if (active) setInitializing(false);
+            });
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (!active) return;
+            // Ne jamais appeler d'autre méthode Supabase ici : le client
+            // sérialise ses appels et se bloquerait. Le profil est chargé par
+            // l'effet ci-dessous, en réaction au changement d'utilisateur.
+            applySession(session?.user ?? null);
+            setInitializing(false);
+        });
 
         return () => {
+            active = false;
             subscription.unsubscribe();
-            window.removeEventListener('popstate', handlePopState);
-            window.removeEventListener('beforeunload', handleBeforeUnload);
         };
     }, []);
 
-    const login = async (email: string, password: string) => {
-        try {
-            setLoading(true);
-            clearError();
+    // -- Profil (nom et thème) ----------------------------------------------
 
-            if (!email || !password) {
-                throw new Error('Email et mot de passe sont requis');
-            }
+    useEffect(() => {
+        if (!user) {
+            setUserName(null);
+            setUserTheme(DEFAULT_THEME);
+            return;
+        }
 
-            const data = await loginUser(email, password);
-
-            updateAuthState({
-                user: data?.user,
-                userName: data?.profile.name,
-                error: null,
+        let active = true;
+        fetchProfile(user.id)
+            .then((profile) => {
+                if (!active) return;
+                setUserName(profile.name || null);
+                setUserTheme(profile.theme);
+            })
+            .catch((cause) => {
+                if (!active) return;
+                setError(toMessage(cause, 'Erreur de chargement du profil'));
             });
 
-            // Le changement d'état sera géré par onAuthStateChange
+        return () => {
+            active = false;
+        };
+    }, [user]);
 
-        } catch (error: any) {
-            handleError(error, 'Erreur de connexion');
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Unique application du thème au document.
+    useEffect(() => {
+        applyTheme(userTheme);
+    }, [userTheme]);
 
-    const register = async (email: string, password: string, name: string) => {
-        try {
-            setLoading(true);
-            clearError();
+    // -- Garde d'accès ------------------------------------------------------
+    //
+    // Remplace `ProtectedRoutes.tsx`, qui était un fichier vide. Couvre d'un
+    // seul tenant la redirection après connexion, celle après déconnexion, et
+    // l'accès direct à `#settings` sans session.
 
-            if (!email || !password || !name) {
-                throw new Error('Tous les champs sont requis');
+    useEffect(() => {
+        if (initializing) return;
+
+        const isPublicView = PUBLIC_VIEWS.includes(currentView);
+        if (!user && !isPublicView) replaceView('login');
+        else if (user && isPublicView) replaceView('dashboard');
+    }, [initializing, user, currentView, replaceView]);
+
+    // -- Actions ------------------------------------------------------------
+
+    const run = useCallback(
+        async <T,>(action: () => Promise<T>, fallbackMessage: string): Promise<T | null> => {
+            setPending(true);
+            setError(null);
+            try {
+                return await action();
+            } catch (cause) {
+                const message = toMessage(cause, fallbackMessage);
+                setError(message);
+                toast.error(message);
+                return null;
+            } finally {
+                setPending(false);
             }
+        },
+        [],
+    );
 
-            await registerNewUser(email, password, name);
+    const login = useCallback(
+        async (email: string, password: string) => {
+            // La redirection est assurée par la garde d'accès, une fois que
+            // `onAuthStateChange` a publié la nouvelle session.
+            await run(() => loginUser(email, password), 'Erreur de connexion');
+        },
+        [run],
+    );
 
-            // Après inscription, on peut rediriger vers login
-            setView('login', true);
+    const register = useCallback(
+        async (email: string, password: string, name: string) => {
+            const result = await run(
+                () => registerNewUser(email, password, name),
+                "Erreur d'inscription",
+            );
+            if (!result) return;
 
-        } catch (error: any) {
-            handleError(error, "Erreur d'inscription");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const changePassword = async (newPassword: string) => {
-        try {
-            setLoading(true);
-            clearError();
-            await updatePassword(newPassword);
-        } catch (error: any) {
-            handleError(error, 'Erreur lors du changement de mot de passe');
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    const logout = async () => {
-        try {
-            setLoading(true);
-            clearError();
-            await logoutUser();
-        } catch (error: any) {
-            handleError(error, 'Erreur de déconnexion');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const changeTheme = async (theme: string) => {
-        try {
-            setLoading(true);
-            clearError();
-
-            if (!authState.user) {
-                throw new Error('Utilisateur non connecté');
-            }
-
-            await updateUserTheme(authState.user.id, theme);
-
-            updateAuthState({
-                userTheme: theme
-            });
-
-            if (theme === 'light') {
-                document.documentElement.setAttribute('data-theme', "cupcake");
+            if (result.needsEmailConfirmation) {
+                toast.success('Inscription réussie. Confirmez votre adresse e-mail pour vous connecter.');
+                replaceView('login');
             } else {
-                document.documentElement.setAttribute('data-theme', "dark");
+                toast.success('Inscription réussie.');
+            }
+        },
+        [run, replaceView],
+    );
+
+    const logout = useCallback(async () => {
+        await run(logoutUser, 'Erreur de déconnexion');
+    }, [run]);
+
+    const changePassword = useCallback(
+        async (newPassword: string) => {
+            const result = await run(
+                async () => {
+                    await updatePassword(newPassword);
+                    return true as const;
+                },
+                'Erreur lors du changement de mot de passe',
+            );
+
+            if (result) toast.success('Mot de passe modifié.');
+            return result === true;
+        },
+        [run],
+    );
+
+    const changeTheme = useCallback(
+        async (theme: ThemeName) => {
+            if (!user) {
+                setError('Utilisateur non connecté');
+                return;
             }
 
-            console.log(`Thème changé vers: ${theme}`);
+            const result = await run(async () => {
+                await updateUserTheme(user.id, theme);
+                return true as const;
+            }, 'Erreur lors du changement de thème');
 
-        } catch (error: any) {
-            handleError(error, 'Erreur lors du changement de thème');
-        } finally {
-            setLoading(false);
-        }
-    }
+            if (result) {
+                setUserTheme(theme);
+                toast.success('Thème appliqué.');
+            }
+        },
+        [run, user],
+    );
 
     return (
         <AuthContext.Provider
             value={{
-                ...authState,
-                loading,
+                user,
+                userName,
+                userTheme,
+                error,
+                initializing,
+                pending,
+                currentView,
+                canGoBack,
                 login,
                 register,
+                logout,
                 changePassword,
                 changeTheme,
-                logout,
                 setView,
-                currentView,
-                setLoading,
-                clearError,
                 goBack,
-                canGoBack,
+                clearError,
             }}
         >
             {children}
         </AuthContext.Provider>
     );
-};
-
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
 };
