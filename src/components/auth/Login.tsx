@@ -59,6 +59,16 @@ const Login: React.FC = () => {
                         {pending ? 'Connexion…' : 'Se connecter'}
                     </button>
 
+                    <p className="mt-2 text-sm text-center">
+                        <button
+                            type="button"
+                            onClick={() => setView('forgot-password')}
+                            className="link link-primary"
+                        >
+                            Mot de passe oublié ?
+                        </button>
+                    </p>
+
                     <p className="mt-2 text-sm">
                         Pas de compte ?{' '}
                         <button

@@ -6,6 +6,13 @@ export interface AuthContextValue extends AuthState {
     register: (email: string, password: string, name: string) => Promise<void>;
     logout: () => Promise<void>;
     changePassword: (newPassword: string) => Promise<boolean>;
+    /** Envoie le lien de réinitialisation à l'adresse indiquée. */
+    sendPasswordReset: (email: string) => Promise<boolean>;
+    /** L'utilisateur est arrivé par un lien de récupération et doit choisir un
+     *  nouveau mot de passe avant d'accéder au reste de l'application. */
+    isRecovering: boolean;
+    completePasswordRecovery: (newPassword: string) => Promise<boolean>;
+    cancelPasswordRecovery: () => Promise<void>;
     changeTheme: (theme: ThemeName) => Promise<void>;
     setView: (view: AppView) => void;
     goBack: () => void;

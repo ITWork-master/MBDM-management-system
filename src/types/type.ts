@@ -9,6 +9,8 @@ export type ThemeName = 'light' | 'dark';
 export const APP_VIEWS = [
     'login',
     'register',
+    'forgot-password',
+    'reset-password',
     'dashboard',
     'products',
     'testimonials',
@@ -18,8 +20,14 @@ export const APP_VIEWS = [
 
 export type AppView = (typeof APP_VIEWS)[number];
 
-/** Vues accessibles sans être connecté. */
-export const PUBLIC_VIEWS: readonly AppView[] = ['login', 'register'];
+/**
+ * Vues accessibles sans être connecté.
+ *
+ * `reset-password` en est volontairement absente : le lien de récupération
+ * ouvre une session temporaire, l'utilisateur y est donc authentifié. L'y
+ * inclure ferait rebondir la garde d'accès vers le tableau de bord.
+ */
+export const PUBLIC_VIEWS: readonly AppView[] = ['login', 'register', 'forgot-password'];
 
 // -- Auth -------------------------------------------------------------------
 

@@ -111,6 +111,30 @@ export const updatePassword = async (newPassword: string): Promise<void> => {
     if (error) throw new Error(`Erreur lors du changement de mot de passe : ${error.message}`);
 };
 
+/**
+ * Envoie le lien de réinitialisation du mot de passe.
+ *
+ * Supabase ne signale jamais qu'une adresse est inconnue, et c'est voulu :
+ * l'inverse permettrait d'énumérer les comptes existants. L'interface affiche
+ * donc le même message quoi qu'il arrive.
+ *
+ * `redirectTo` ne porte pas de fragment : Supabase y ajoute le sien
+ * (`#access_token=…&type=recovery`), et deux fragments se télescoperaient.
+ * C'est l'évènement PASSWORD_RECOVERY qui aiguille ensuite vers le formulaire.
+ * Cette URL doit figurer dans Authentication → URL Configuration → Redirect URLs.
+ */
+export const sendPasswordReset = async (email: string): Promise<void> => {
+    if (!email) throw new Error('Adresse e-mail requise');
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}${window.location.pathname}`,
+    });
+
+    if (error) {
+        throw new Error(`Erreur lors de l'envoi du lien : ${error.message}`);
+    }
+};
+
 export const updateUserTheme = async (userId: string, theme: ThemeName): Promise<void> => {
     const { error } = await supabase.from('profiles').update({ theme }).eq('id', userId);
     if (error) throw new Error(`Erreur lors du changement de thème : ${error.message}`);

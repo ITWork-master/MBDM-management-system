@@ -8,11 +8,13 @@ import {
     loginUser,
     logoutUser,
     registerNewUser,
+    sendPasswordReset as sendPasswordResetEmail,
     updatePassword,
     updateUserTheme,
 } from '../services/auth.service';
 import { applyTheme, DEFAULT_THEME } from '../lib/theme';
 import { toMessage } from '../lib/errors';
+import { AUTH_CALLBACK } from '../lib/authCallback';
 import { AuthContext } from './useAuth';
 import { APP_VIEWS, PUBLIC_VIEWS } from '../types/type';
 import type { AppView, ThemeName } from '../types/type';
@@ -45,6 +47,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [pending, setPending] = useState(false);
     const [currentView, setCurrentView] = useState<AppView>(() => viewFromHash() ?? 'login');
     const [canGoBack, setCanGoBack] = useState(false);
+    // Amorcé depuis le fragment d'URL : l'évènement PASSWORD_RECOVERY peut
+    // arriver après le premier rendu, mais le lien, lui, est déjà lisible.
+    const [isRecovering, setIsRecovering] = useState(AUTH_CALLBACK.type === 'recovery');
 
     // Reflet synchrone de `currentView`, pour comparer sans dépendre du rendu.
     const currentViewRef = useRef<AppView>(currentView);
@@ -84,9 +89,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         else replaceView('dashboard');
     }, [replaceView]);
 
-    // Ancre l'entrée d'historique initiale, pour que `popstate` ait un état à lire.
+    // Ancre l'entrée d'historique initiale, pour que `popstate` ait un état à
+    // lire. On s'abstient tant que le fragment porte les jetons d'un lien
+    // Supabase : les réécrire les effacerait avant que le client ait pu les
+    // consommer, et le lien de récupération deviendrait inopérant.
     useEffect(() => {
-        if (!window.history.state) {
+        if (!window.history.state && !AUTH_CALLBACK.isCallback) {
             window.history.replaceState(
                 { view: currentViewRef.current, depth: 0 },
                 '',
@@ -108,6 +116,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
+
+    // Un lien expiré ou déjà utilisé revient avec son motif dans le fragment.
+    useEffect(() => {
+        if (AUTH_CALLBACK.errorDescription) {
+            setError(AUTH_CALLBACK.errorDescription);
+            setIsRecovering(false);
+        }
     }, []);
 
     // -- Session ------------------------------------------------------------
@@ -133,8 +149,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange((event, session) => {
             if (!active) return;
+            if (event === 'PASSWORD_RECOVERY') setIsRecovering(true);
             // Ne jamais appeler d'autre méthode Supabase ici : le client
             // sérialise ses appels et se bloquerait. Le profil est chargé par
             // l'effet ci-dessous, en réaction au changement d'utilisateur.
@@ -188,10 +205,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         if (initializing) return;
 
+        // Tant que le mot de passe n'a pas été renouvelé, la session ouverte par
+        // le lien ne donne accès à rien d'autre.
+        if (isRecovering && user) {
+            if (currentView !== 'reset-password') replaceView('reset-password');
+            return;
+        }
+
         const isPublicView = PUBLIC_VIEWS.includes(currentView);
         if (!user && !isPublicView) replaceView('login');
         else if (user && isPublicView) replaceView('dashboard');
-    }, [initializing, user, currentView, replaceView]);
+    }, [initializing, user, currentView, isRecovering, replaceView]);
 
     // -- Actions ------------------------------------------------------------
 
@@ -260,6 +284,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         [run],
     );
 
+    const sendPasswordReset = useCallback(
+        async (email: string) => {
+            const result = await run(async () => {
+                await sendPasswordResetEmail(email);
+                return true as const;
+            }, "Erreur lors de l'envoi du lien");
+            return result === true;
+        },
+        [run],
+    );
+
+    const completePasswordRecovery = useCallback(
+        async (newPassword: string) => {
+            const result = await run(async () => {
+                await updatePassword(newPassword);
+                return true as const;
+            }, 'Erreur lors de la réinitialisation du mot de passe');
+
+            if (!result) return false;
+
+            setIsRecovering(false);
+            toast.success('Mot de passe réinitialisé.');
+            replaceView('dashboard');
+            return true;
+        },
+        [run, replaceView],
+    );
+
+    const cancelPasswordRecovery = useCallback(async () => {
+        setIsRecovering(false);
+        await run(logoutUser, 'Erreur de déconnexion');
+    }, [run]);
+
     const changeTheme = useCallback(
         async (theme: ThemeName) => {
             if (!user) {
@@ -295,6 +352,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 register,
                 logout,
                 changePassword,
+                sendPasswordReset,
+                isRecovering,
+                completePasswordRecovery,
+                cancelPasswordRecovery,
                 changeTheme,
                 setView,
                 goBack,

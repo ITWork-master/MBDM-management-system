@@ -4,6 +4,8 @@ import { Toaster } from 'sonner';
 import { useAuth } from './context/useAuth';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import ForgotPassword from './components/auth/ForgotPassword';
+import ResetPassword from './components/auth/ResetPassword';
 import Dashboard from './components/dashboard/Dashboard';
 import Products from './components/Products';
 import Testimonials from './components/Testimonials';
@@ -14,6 +16,8 @@ import type { AppView } from './types/type';
 const VIEWS: Record<AppView, React.ComponentType> = {
     login: Login,
     register: Register,
+    'forgot-password': ForgotPassword,
+    'reset-password': ResetPassword,
     dashboard: Dashboard,
     products: Products,
     testimonials: Testimonials,

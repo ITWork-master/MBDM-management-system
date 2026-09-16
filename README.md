@@ -33,9 +33,14 @@ Nom du client et message, présentés sous forme de cartes citations.
 Titre, description et image au format 4:3, avec recherche.
 
 ### 🔐 Authentification
-Inscription, connexion, changement de mot de passe, suppression de compte.
-Chaque utilisateur ne voit que ses propres données, garanti par les politiques
-RLS de PostgreSQL.
+Inscription, connexion, mot de passe oublié, changement de mot de passe,
+suppression de compte. Chaque utilisateur ne voit que ses propres données,
+garanti par les politiques RLS de PostgreSQL.
+
+Le lien de réinitialisation ouvre une session temporaire qui ne donne accès à
+rien d'autre qu'au formulaire de nouveau mot de passe, tant que celui-ci n'a pas
+été validé. Voir [Mot de passe oublié](#-mot-de-passe-oublié) pour la
+configuration requise.
 
 ### 🎨 Thème
 Bascule clair (`cupcake`) / sombre, prévisualisable avant validation et
@@ -172,6 +177,46 @@ Toutes les tables de contenu portent `id`, `user_id`, `created_at`, `updated_at`
 
 Le bucket range les fichiers sous `<user_id>/<uuid>.<ext>` : le premier segment
 du chemin sert aux politiques RLS du storage à identifier le propriétaire.
+
+## 🔑 Mot de passe oublié
+
+Le parcours est intégralement pris en charge par l'application : lien sur
+l'écran de connexion, saisie de l'adresse, e-mail de Supabase, puis formulaire
+de nouveau mot de passe au retour.
+
+Deux réglages conditionnent son bon fonctionnement.
+
+### 1. Autoriser l'URL de retour
+
+**Authentication → URL Configuration** :
+
+| Champ | Valeur |
+|---|---|
+| Site URL | l'URL de production, ex. `https://mbdm.exemple.com` |
+| Redirect URLs | ajouter `http://localhost:5173/**` pour le développement |
+
+Sans cela, Supabase renvoie vers la Site URL quel que soit le `redirectTo`
+demandé, et le lien ne ramène pas sur l'application en local.
+
+### 2. Configurer un vrai serveur SMTP
+
+Le service d'e-mail intégré de Supabase est limité à quelques envois par heure,
+toutes catégories confondues — inscriptions comprises. Au-delà, l'API répond
+`email rate limit exceeded` et **aucun e-mail n'est envoyé**. Pour un usage
+réel, renseigner un SMTP dans **Authentication → Emails → SMTP Settings**.
+
+### Détails d'implémentation
+
+Le lien de retour place ses jetons dans le fragment d'URL
+(`#access_token=…&type=recovery`), que l'application utilise par ailleurs pour
+sa navigation. `src/lib/authCallback.ts` lit ces paramètres à l'import du
+module, avant que `detectSessionInUrl` ne nettoie le fragment, et empêche
+AuthContext de réécrire l'historique tant qu'ils s'y trouvent — les effacer
+rendrait le lien inopérant.
+
+L'application ne révèle jamais si une adresse correspond à un compte : le même
+message de confirmation s'affiche dans tous les cas, afin de ne pas permettre
+l'énumération des comptes enregistrés.
 
 ## 📜 Scripts
 
