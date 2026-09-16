@@ -23,7 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# Variables d'environnement (ne jamais versionner)
+# Variables d'environnement (ne jamais versionner) maybe
 .env
 .env.local
 .env.*.local
