@@ -1,643 +1,332 @@
 // src/components/Products.tsx
-import React, { useState, useEffect, useCallback } from 'react';
-import Cropper from 'react-easy-crop';
+import React, { useMemo, useState } from 'react';
+import { Image as ImageIcon, Package } from 'lucide-react';
 import Navbar from './tools/Navbar';
 import ComponentsLayout from './tools/ComponentsLayout';
-import Modal from './tools/Modal';
-import ProductCard from './ProductCard';
-import { Plus, Loader, Package, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
-import { useProduct } from './hooks/UseProducts';
-import type { Product, UpdateProductData } from '../types/type';
+import PageLoader from './tools/PageLoader';
+import EmptyState from './tools/EmptyState';
+import FloatingAddButton from './tools/FloatingAddButton';
+import ImageCropperModal from './tools/ImageCropperModal';
+import { useConfirm } from './tools/useConfirm';
+import EntityCard from './entities/EntityCard';
+import EntityFormModal from './entities/EntityFormModal';
+import ImageField from './entities/ImageField';
+import { useProducts } from '../hooks/useProducts';
+import { useImagePicker } from '../hooks/useImagePicker';
+import { deleteImage, uploadImage } from '../services/storage.service';
+import { toMessage } from '../lib/errors';
+import { toast } from 'sonner';
+import {
+    PRODUCT_TYPES,
+    PRODUCT_TYPE_LABELS,
+    isProductType,
+    type CreateProductData,
+    type Product,
+    type ProductType,
+} from '../types/type';
 
-// Types pour le recadrage
-interface Crop {
-    x: number;
-    y: number;
-}
+const EMPTY_FORM = {
+    title: '',
+    description: '',
+    type: 'electrique' as ProductType,
+};
 
-interface CroppedArea {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
-
-// Helper function to validate product type
-const validateProductType = (type: string): 'electrique' | 'thermique' | 'climatisation' | 'ventilation' | 'froid' => {
-    if (type === 'electrique' || type === 'thermique' || type === 'climatisation' || type === 'ventilation' || type === 'froid') {
-        return type;
-    }
-    return 'electrique'; // default to 'electrique' for invalid types
+const PLACEHOLDER = {
+    icon: ImageIcon,
+    className: 'bg-gradient-to-br from-base-200 to-base-300',
+    iconClassName: 'text-base-content/30',
 };
 
 const Products: React.FC = () => {
+    const products = useProducts();
+    const picker = useImagePicker();
+    const confirm = useConfirm();
+
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isCropModalOpen, setIsCropModalOpen] = useState(false);
-    const [products, setProducts] = useState<Product[]>([]);
-    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        type: 'electrique' as 'electrique' | 'thermique' | 'climatisation' | 'ventilation' | 'froid'
-    });
-    const [selectedImage, setSelectedImage] = useState<File | null>(null);
-    const [isLoadingProducts, setIsLoadingProducts] = useState(true);
-    const [filterType, setFilterType] = useState<'all' | Product['type']>('all');
+    const [editing, setEditing] = useState<Product | null>(null);
+    const [form, setForm] = useState(EMPTY_FORM);
+    const [isUploading, setIsUploading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterType, setFilterType] = useState<'all' | ProductType>('all');
 
-    // États pour le recadrage
-    const [crop, setCrop] = useState<Crop>({ x: 0, y: 0 });
-    const [zoom, setZoom] = useState(1);
-    const [rotation, setRotation] = useState(0);
-    const [croppedAreaPixels, setCroppedAreaPixels] = useState<CroppedArea | null>(null);
-    const [imageSrc, setImageSrc] = useState<string | null>(null);
-
-    const {
-        createProduct,
-        getProducts,
-        updateProduct,
-        deleteProduct,
-        uploadImage,
-        loading,
-        error
-    } = useProduct();
-
-    useEffect(() => {
-        loadProducts();
-    }, []);
-
-    const loadProducts = async () => {
-        try {
-            setIsLoadingProducts(true);
-            const productsData = await getProducts();
-            setProducts(productsData);
-        } catch (err) {
-            console.error('Erreur lors du chargement des produits:', err);
-        } finally {
-            setIsLoadingProducts(false);
-        }
-    };
-
-    // Fonction pour créer une image recadrée
-    const createCroppedImage = useCallback(async (): Promise<Blob> => {
-        if (!imageSrc || !croppedAreaPixels) {
-            throw new Error('Image source ou zone recadrée manquante');
-        }
-
-        const image = new Image();
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-
-        return new Promise((resolve, reject) => {
-            image.onload = () => {
-                const { x, y, width, height } = croppedAreaPixels;
-
-                canvas.width = width;
-                canvas.height = height;
-
-                if (ctx) {
-                    // Sauvegarder l'état du contexte
-                    ctx.save();
-
-                    // Translater vers le centre pour la rotation
-                    ctx.translate(width / 2, height / 2);
-                    ctx.rotate((rotation * Math.PI) / 180);
-                    ctx.translate(-width / 2, -height / 2);
-
-                    // Dessiner l'image recadrée
-                    ctx.drawImage(
-                        image,
-                        x,
-                        y,
-                        width,
-                        height,
-                        0,
-                        0,
-                        width,
-                        height
-                    );
-
-                    // Restaurer l'état du contexte
-                    ctx.restore();
-
-                    canvas.toBlob((blob) => {
-                        if (blob) {
-                            resolve(blob);
-                        } else {
-                            reject(new Error('Erreur lors de la création du blob'));
-                        }
-                    }, 'image/jpeg', 0.9);
-                }
-            };
-            image.onerror = reject;
-            image.src = imageSrc;
+    const filtered = useMemo(() => {
+        const needle = searchTerm.trim().toLowerCase();
+        return products.items.filter((product) => {
+            const matchesType = filterType === 'all' || product.type === filterType;
+            const matchesSearch =
+                !needle ||
+                product.title.toLowerCase().includes(needle) ||
+                product.description.toLowerCase().includes(needle);
+            return matchesType && matchesSearch;
         });
-    }, [imageSrc, croppedAreaPixels, rotation]);
+    }, [products.items, filterType, searchTerm]);
 
-    // Fonction appelée quand le recadrage change
-    const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: CroppedArea) => {
-        setCroppedAreaPixels(croppedAreaPixels);
-        console.log(croppedArea);
-
-    }, []);
-
-    // Gestion de la sélection d'image avec recadrage
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-
-            reader.onload = () => {
-                setImageSrc(reader.result as string);
-                setSelectedImage(file);
-                setIsCropModalOpen(true);
-                // Réinitialiser les paramètres de recadrage
-                setCrop({ x: 0, y: 0 });
-                setZoom(1);
-                setRotation(0);
-            };
-
-            reader.readAsDataURL(file);
-        }
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setEditing(null);
+        setForm(EMPTY_FORM);
+        picker.reset();
+        products.clearError();
     };
 
-    // Confirmer le recadrage
-    const handleConfirmCrop = async () => {
-        try {
-            if (croppedAreaPixels) {
-                const croppedImageBlob = await createCroppedImage();
-                const croppedFile = new File([croppedImageBlob], selectedImage?.name || 'cropped-image.jpg', {
-                    type: 'image/jpeg'
-                });
-                setSelectedImage(croppedFile);
-            }
-            setIsCropModalOpen(false);
-        } catch (error) {
-            console.error('Erreur lors du recadrage:', error);
-            alert('Erreur lors du recadrage de l\'image');
-        }
-    };
-
-    const handleOpenModal = () => {
-        setEditingProduct(null);
-        setFormData({ title: '', description: '', type: 'electrique' });
-        setSelectedImage(null);
-        setImageSrc(null);
+    const openCreateModal = () => {
+        setEditing(null);
+        setForm(EMPTY_FORM);
+        picker.reset();
+        products.clearError();
         setIsModalOpen(true);
     };
 
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setEditingProduct(null);
-        setFormData({ title: '', description: '', type: 'electrique' });
-        setSelectedImage(null);
-        setImageSrc(null);
-    };
-
-    const handleCloseCropModal = () => {
-        setIsCropModalOpen(false);
-        setSelectedImage(null);
-        setImageSrc(null);
-    };
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
-    const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        if (name === 'type') {
-            const validType = validateProductType(value);
-            setFormData(prev => ({
-                ...prev,
-                [name]: validType
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                [name]: value
-            }));
-        }
+    const openEditModal = (product: Product) => {
+        setEditing(product);
+        setForm({
+            title: product.title,
+            description: product.description ?? '',
+            type: isProductType(product.type) ? product.type : EMPTY_FORM.type,
+        });
+        picker.reset();
+        products.clearError();
+        setIsModalOpen(true);
     };
 
     const handleSubmit = async () => {
-        try {
-            let imageUrl = undefined;
+        const title = form.title.trim();
+        const description = form.description.trim();
+        if (!title || !description) return;
 
-            if (selectedImage) {
-                imageUrl = await uploadImage(selectedImage);
+        let uploadedUrl: string | undefined;
+        if (picker.file) {
+            setIsUploading(true);
+            try {
+                uploadedUrl = await uploadImage(picker.file);
+            } catch (cause) {
+                toast.error(toMessage(cause, "Erreur lors de l'envoi de l'image"));
+                return;
+            } finally {
+                setIsUploading(false);
             }
+        }
 
-            if (editingProduct) {
-                const updateData: UpdateProductData = {
-                    title: formData.title,
-                    description: formData.description,
-                    type: formData.type
-                };
+        const payload: CreateProductData = { title, description, type: form.type };
+        if (uploadedUrl) payload.image_url = uploadedUrl;
 
-                if (imageUrl) {
-                    updateData.image_url = imageUrl;
-                }
+        const saved = editing
+            ? await products.update(editing.id, payload)
+            : await products.create(payload);
 
-                await updateProduct(editingProduct.id, updateData);
-            } else {
-                await createProduct({
-                    title: formData.title,
-                    description: formData.description,
-                    type: formData.type,
-                    image_url: imageUrl,
-                });
-            }
-
-            await loadProducts();
-            handleCloseModal();
-
-        } catch (err) {
-            console.error('Erreur:', err);
+        if (saved) {
+            closeModal();
+        } else if (uploadedUrl) {
+            // L'enregistrement a échoué : ne pas laisser l'image envoyée orpheline.
+            await deleteImage(uploadedUrl);
         }
     };
 
-    const handleEditProduct = (product: Product) => {
-        setEditingProduct(product);
-        const validType = validateProductType(product.type);
-        setFormData({
-            title: product.title,
-            description: product.description || '',
-            type: validType
+    const handleDelete = async (product: Product) => {
+        const confirmed = await confirm({
+            title: 'Supprimer le produit',
+            message: `« ${product.title} » sera définitivement supprimé, ainsi que son image.`,
+            confirmLabel: 'Supprimer',
+            danger: true,
         });
-        setIsModalOpen(true);
+        if (confirmed) await products.remove(product.id);
     };
 
-    const handleDeleteProduct = async (productId: string) => {
-        try {
-            await deleteProduct(productId);
-            await loadProducts();
-        } catch (err) {
-            console.error('Erreur lors de la suppression:', err);
-        }
-    };
-
-    const modalTitle = editingProduct ? 'Modifier le produit' : 'Ajouter un produit';
-    const submitButtonText = editingProduct ? 'Modifier le produit' : 'Ajouter le produit';
-
-    // Filtrer les produits par type et terme de recherche
-    const filteredProducts = products.filter(product => {
-        const matchesType = filterType === 'all' || product.type === filterType;
-        const matchesSearch = searchTerm === '' ||
-            product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
-        return matchesType && matchesSearch;
-    });
-
-    if (isLoadingProducts) {
+    if (products.isLoading) {
         return (
-            <ComponentsLayout className='overflow-clip'>
-                <Navbar sectionName='Produits' />
-                <div className="flex justify-center items-center h-64">
-                    <div className="text-center">
-                        <Loader className="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" />
-                        <p className="text-base-content/60">Chargement des produits...</p>
-                    </div>
-                </div>
+            <ComponentsLayout className="overflow-clip">
+                <Navbar sectionName="Produits" />
+                <PageLoader message="Chargement des produits…" />
             </ComponentsLayout>
         );
     }
 
-    return (
-        <ComponentsLayout className='overflow-clip'>
-            <Navbar sectionName='Produits' />
+    const isSaving = products.isSaving || isUploading;
+    const canSubmit = Boolean(form.title.trim() && form.description.trim());
 
-            {/* Liste des produits */}
+    return (
+        <ComponentsLayout className="overflow-clip">
+            <Navbar sectionName="Produits" />
+
             <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <h1 className="text-2xl font-bold text-base-content/90">Mes Produits</h1>
 
-                    {/* Barre de recherche */}
-                    <div className="">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Rechercher un produit..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full input focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-                    </div>
+                    <input
+                        type="search"
+                        placeholder="Rechercher un produit…"
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                        aria-label="Rechercher un produit"
+                        className="input w-full sm:w-64"
+                    />
 
-
-                    <span className="text-base-content/60">
-                        {filteredProducts.length} produit{filteredProducts.length > 1 ? 's' : ''}
-                        {filterType !== 'all' && ` (filtrés)`}
+                    <span className="text-base-content/60 whitespace-nowrap">
+                        {filtered.length} produit{filtered.length > 1 ? 's' : ''}
+                        {filterType !== 'all' && ' (filtrés)'}
                     </span>
                 </div>
 
-                {/* Filtre par type */}
-                <div className="mb-6">
-                    <div className="flex flex-wrap gap-2">
+                <div className="mb-6 flex flex-wrap gap-2">
+                    {(['all', ...PRODUCT_TYPES] as const).map((value) => (
                         <button
-                            onClick={() => setFilterType('all')}
-                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${filterType === 'all'
-                                    ? 'bg-blue-500 text-white'
+                            key={value}
+                            type="button"
+                            onClick={() => setFilterType(value)}
+                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${
+                                filterType === value
+                                    ? 'bg-primary text-primary-content'
                                     : 'bg-base-200 text-base-content/70 hover:bg-base-300'
-                                }`}
+                            }`}
                         >
-                            Tous
+                            {value === 'all' ? 'Tous' : PRODUCT_TYPE_LABELS[value]}
                         </button>
-                        <button
-                            onClick={() => setFilterType('electrique')}
-                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${filterType === 'electrique'
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-base-200 text-base-content/70 hover:bg-base-300'
-                                }`}
-                        >
-                            Électrique
-                        </button>
-                        <button
-                            onClick={() => setFilterType('thermique')}
-                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${filterType === 'thermique'
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-base-200 text-base-content/70 hover:bg-base-300'
-                                }`}
-                        >
-                            Thermique
-                        </button>
-                        <button
-                            onClick={() => setFilterType('climatisation')}
-                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${filterType === 'climatisation'
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-base-200 text-base-content/70 hover:bg-base-300'
-                                }`}
-                        >
-                            Climatisation
-                        </button>
-                        <button
-                            onClick={() => setFilterType('ventilation')}
-                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${filterType === 'ventilation'
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-base-200 text-base-content/70 hover:bg-base-300'
-                                }`}
-                        >
-                            Ventilation
-                        </button>
-                        <button
-                            onClick={() => setFilterType('froid')}
-                            className={`px-3 py-1 rounded-md text-sm transition-colors duration-200 ${filterType === 'froid'
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-base-200 text-base-content/70 hover:bg-base-300'
-                                }`}
-                        >
-                            Froid
-                        </button>
-                    </div>
+                    ))}
                 </div>
 
-
-                {products.length === 0 ? (
-                    <div className="text-center py-12">
-                        <div className="text-base-content/40 mb-4">
-                            <Package size={48} className="mx-auto" />
-                        </div>
-                        <h3 className="text-lg font-medium text-base-content/90 mb-2">
-                            Aucun produit
-                        </h3>
-                        <p className="text-base-content/60 mb-4">
-                            Commencez par ajouter votre premier produit.
+                {products.items.length === 0 ? (
+                    <EmptyState
+                        icon={Package}
+                        title="Aucun produit"
+                        description="Commencez par ajouter votre premier produit."
+                        actionLabel="Ajouter un produit"
+                        onAction={openCreateModal}
+                    />
+                ) : filtered.length === 0 ? (
+                    <div className="text-center py-8">
+                        <p className="text-base-content/60">
+                            Aucun produit ne correspond à votre recherche.
                         </p>
-                        <button
-                            onClick={handleOpenModal}
-                            className="px-4 py-2 bg-blue-500 text-base-content rounded-md hover:bg-blue-600 transition-colors duration-200"
-                        >
-                            Ajouter un produit
-                        </button>
                     </div>
                 ) : (
-                    <div>
-                        {/* Version Desktop */}
-                        <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                            {filteredProducts.map((product) => (
-                                <ProductCard
-                                    key={product.id}
-                                    product={product}
-                                    onEdit={handleEditProduct}
-                                    onDelete={handleDeleteProduct}
-                                />
-                            ))}
-                        </div>
-
-                        {/* Version Mobile */}
-                        <div className="md:hidden space-y-3">
-                            {filteredProducts.map((product) => (
-                                <ProductCard
-                                    key={product.id}
-                                    product={product}
-                                    onEdit={handleEditProduct}
-                                    onDelete={handleDeleteProduct}
-                                />
-                            ))}
-                        </div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+                        {filtered.map((product) => (
+                            <EntityCard
+                                key={product.id}
+                                title={product.title}
+                                description={product.description}
+                                imageUrl={product.image_url}
+                                createdAt={product.created_at}
+                                updatedAt={product.updated_at}
+                                desktopImageClass="aspect-square"
+                                mobileImageClass="w-14 h-14"
+                                placeholder={PLACEHOLDER}
+                                badge={
+                                    <span className="badge badge-primary badge-outline whitespace-nowrap flex-shrink-0">
+                                        {PRODUCT_TYPE_LABELS[product.type] ?? product.type}
+                                    </span>
+                                }
+                                isDeleting={products.deletingId === product.id}
+                                onEdit={() => openEditModal(product)}
+                                onDelete={() => handleDelete(product)}
+                            />
+                        ))}
                     </div>
                 )}
             </div>
 
-            {/* Button Add flottant */}
-            {products.length > 0 && (
-                <button
-                    onClick={handleOpenModal}
-                    className='rounded-full bg-blue-500 w-max p-4 text-base-content fixed bottom-10 right-10 hover:bg-blue-600 transition-colors duration-200 shadow-lg'
-                >
-                    <Plus size={30} />
-                </button>
+            {products.items.length > 0 && (
+                <FloatingAddButton onClick={openCreateModal} label="Ajouter un produit" />
             )}
 
-            {/* Modal principal Add/Edit */}
-            <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
-                <div className="p-6">
-                    <h2 className="text-2xl font-bold mb-6">{modalTitle}</h2>
+            <EntityFormModal
+                isOpen={isModalOpen}
+                onClose={closeModal}
+                heading={editing ? 'Modifier le produit' : 'Ajouter un produit'}
+                submitLabel={editing ? 'Modifier le produit' : 'Ajouter le produit'}
+                isSaving={isSaving}
+                error={products.error}
+                canSubmit={canSubmit}
+                onSubmit={handleSubmit}
+            >
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1">
+                        <label
+                            htmlFor="product-title"
+                            className="block text-sm font-medium text-base-content/70 mb-2"
+                        >
+                            Nom du produit *
+                        </label>
+                        <input
+                            id="product-title"
+                            type="text"
+                            value={form.title}
+                            onChange={(event) =>
+                                setForm((previous) => ({ ...previous, title: event.target.value }))
+                            }
+                            className="input input-bordered w-full"
+                            placeholder="Entrez le nom du produit"
+                            required
+                        />
+                    </div>
 
-                    {error && (
-                        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                            {error}
-                        </div>
-                    )}
-
-                    <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                        <div className='flex flex-col sm:flex-row gap-4'>
-                            <div className='flex-1'>
-                                <label className="block text-sm font-medium text-base-content/70 mb-2">
-                                    Nom du produit *
-                                </label>
-                                <input
-                                    type="text"
-                                    name="title"
-                                    value={formData.title}
-                                    onChange={handleInputChange}
-                                    className="w-full px-3 py-2 border border-base-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Entrez le nom du produit"
-                                    required
-                                />
-                            </div>
-                            <div className='flex-1'>
-                                <label className="block text-sm font-medium text-base-content/70 mb-2">
-                                    Type *
-                                </label>
-                                <select
-                                    name="type"
-                                    className="w-full px-3 py-2 border border-base-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={formData.type}
-                                    onChange={handleTypeChange}
-                                    required
-                                >
-                                    <option value="electrique">Électrique</option>
-                                    <option value="thermique">Thermique</option>
-                                    <option value="climatisation">Climatisation</option>
-                                    <option value="ventilation">Ventilation</option>
-                                    <option value="froid">Froid</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-base-content/70 mb-2">
-                                Description *
-                            </label>
-                            <textarea
-                                name="description"
-                                value={formData.description}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-base-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                rows={4}
-                                placeholder="Entrez la description du produit"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-base-content/70 mb-2">
-                                Image du produit
-                            </label>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleImageChange}
-                                className="file-input file-input-bordered w-full focus:ring-2 focus:ring-blue-500"
-                            />
-                            {selectedImage && !isCropModalOpen && (
-                                <p className="mt-2 text-sm text-base-content/60">
-                                    Image sélectionnée: {selectedImage.name}
-                                </p>
-                            )}
-                            {editingProduct?.image_url && !selectedImage && (
-                                <p className="mt-2 text-sm text-base-content/60">
-                                    Image actuelle: <a href={editingProduct.image_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Voir l'image</a>
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="flex justify-end space-x-3 pt-4">
-                            <button
-                                type="button"
-                                onClick={handleCloseModal}
-                                disabled={loading}
-                                className="px-4 py-2 text-base-content/60 border border-base-300 rounded-md hover:bg-base-200 transition-colors duration-200 disabled:opacity-50"
-                            >
-                                Annuler
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleSubmit}
-                                disabled={loading || !formData.title || !formData.description}
-                                className="px-4 py-2 bg-blue-500 text-base-content rounded-md hover:bg-blue-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                            >
-                                {loading && <Loader className="animate-spin h-4 w-4" />}
-                                <span>{loading ? 'Chargement...' : submitButtonText}</span>
-                            </button>
-                        </div>
-                    </form>
+                    <div className="flex-1">
+                        <label
+                            htmlFor="product-type"
+                            className="block text-sm font-medium text-base-content/70 mb-2"
+                        >
+                            Type *
+                        </label>
+                        <select
+                            id="product-type"
+                            className="select select-bordered w-full"
+                            value={form.type}
+                            onChange={(event) =>
+                                setForm((previous) => ({
+                                    ...previous,
+                                    type: isProductType(event.target.value)
+                                        ? event.target.value
+                                        : previous.type,
+                                }))
+                            }
+                            required
+                        >
+                            {PRODUCT_TYPES.map((type) => (
+                                <option key={type} value={type}>
+                                    {PRODUCT_TYPE_LABELS[type]}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
-            </Modal>
 
-            {/* Modal de recadrage */}
-            <Modal isOpen={isCropModalOpen} onClose={handleCloseCropModal}>
-                <div className="p-6">
-                    <h2 className="text-2xl font-bold mb-4">Recadrer l'image</h2>
-
-                    {imageSrc && (
-                        <div className="space-y-4">
-                            {/* Zone de recadrage */}
-                            <div className="relative h-64 w-full bg-base-200 rounded-lg overflow-hidden">
-                                <Cropper
-                                    image={imageSrc}
-                                    crop={crop}
-                                    zoom={zoom}
-                                    rotation={rotation}
-                                    aspect={3 / 3}
-                                    onCropChange={setCrop}
-                                    onZoomChange={setZoom}
-                                    onRotationChange={setRotation}
-                                    onCropComplete={onCropComplete}
-                                    objectFit="contain"
-                                />
-                            </div>
-
-                            {/* Contrôles de zoom */}
-                            <div className="space-y-2">
-                                <label className="flex items-center space-x-2 text-sm">
-                                    <ZoomOut size={16} />
-                                    <input
-                                        type="range"
-                                        min={1}
-                                        max={3}
-                                        step={0.1}
-                                        value={zoom}
-                                        onChange={(e) => setZoom(Number(e.target.value))}
-                                        className="w-full"
-                                    />
-                                    <ZoomIn size={16} />
-                                </label>
-
-                                {/* Contrôle de rotation */}
-                                <label className="flex items-center space-x-2 text-sm">
-                                    <RotateCcw size={16} />
-                                    <span>Rotation:</span>
-                                    <input
-                                        type="range"
-                                        min={0}
-                                        max={360}
-                                        step={1}
-                                        value={rotation}
-                                        onChange={(e) => setRotation(Number(e.target.value))}
-                                        className="w-full"
-                                    />
-                                    <span>{rotation}°</span>
-                                </label>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex justify-end space-x-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={handleCloseCropModal}
-                                    className="px-4 py-2 text-base-content/60 border border-base-300 rounded-md hover:bg-base-200 transition-colors duration-200"
-                                >
-                                    Annuler
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleConfirmCrop}
-                                    className="px-4 py-2 bg-blue-500 text-base-content rounded-md hover:bg-blue-600 transition-colors duration-200"
-                                >
-                                    Confirmer le recadrage
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                <div>
+                    <label
+                        htmlFor="product-description"
+                        className="block text-sm font-medium text-base-content/70 mb-2"
+                    >
+                        Description *
+                    </label>
+                    <textarea
+                        id="product-description"
+                        value={form.description}
+                        onChange={(event) =>
+                            setForm((previous) => ({
+                                ...previous,
+                                description: event.target.value,
+                            }))
+                        }
+                        className="textarea textarea-bordered w-full"
+                        rows={4}
+                        placeholder="Entrez la description du produit"
+                        required
+                    />
                 </div>
-            </Modal>
+
+                <ImageField
+                    label="Image du produit"
+                    picker={picker}
+                    currentImageUrl={editing?.image_url}
+                />
+            </EntityFormModal>
+
+            <ImageCropperModal
+                isOpen={picker.isCropperOpen}
+                src={picker.sourceUrl}
+                aspect={1}
+                onCancel={picker.cancelCrop}
+                onConfirm={picker.confirmCrop}
+            />
         </ComponentsLayout>
     );
 };

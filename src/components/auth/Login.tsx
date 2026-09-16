@@ -1,64 +1,76 @@
-// src/components/Auth/Login.tsx
+// src/components/auth/Login.tsx
 import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { login, loading, error, setView } = useAuth();
+    const { login, pending, error, setView } = useAuth();
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
         await login(email, password);
     };
 
     return (
         <div className="w-screen h-screen flex justify-center items-center">
-            <fieldset className="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4">
-                <legend className="fieldset-legend text-2xl ">Se Connecter</legend>
-
-                <label className="label">Email</label>
-                <input
-                    type="email"
-                    id="email"
-                    className='input'
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                />
-
-                <label className="label">Mot de passe</label>
-                <input
-                    type="password"
-                    id="password"
-                    className='input'
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                />
-                {error && <div className="error-message">{error}</div>}
-                <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={loading}
-                    className="btn btn-neutral mt-4"
+            {/* Un vrai <form> : la touche Entrée valide, et les attributs
+                `required` des champs reprennent leur effet. */}
+            <form onSubmit={handleSubmit}>
+                <fieldset
+                    className="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4"
+                    disabled={pending}
                 >
-                    {loading ? 'Connexion...' : 'Se connecter'}
-                </button>
-                <div className="auth-switch">
-                    <p>
+                    <legend className="fieldset-legend text-2xl">Se Connecter</legend>
+
+                    <label className="label" htmlFor="email">
+                        Email
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        autoComplete="email"
+                        className="input"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        required
+                    />
+
+                    <label className="label" htmlFor="password">
+                        Mot de passe
+                    </label>
+                    <input
+                        type="password"
+                        id="password"
+                        autoComplete="current-password"
+                        className="input"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        required
+                    />
+
+                    {error && (
+                        <div role="alert" className="alert alert-error mt-3 text-sm">
+                            {error}
+                        </div>
+                    )}
+
+                    <button type="submit" className="btn btn-neutral mt-4">
+                        {pending ? 'Connexion…' : 'Se connecter'}
+                    </button>
+
+                    <p className="mt-2 text-sm">
                         Pas de compte ?{' '}
                         <button
+                            type="button"
                             onClick={() => setView('register')}
-                            className="link-button"
+                            className="link link-primary"
                         >
                             S'inscrire
                         </button>
                     </p>
-                </div>
-            </fieldset>
+                </fieldset>
+            </form>
         </div>
     );
 };

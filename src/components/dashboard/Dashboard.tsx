@@ -2,7 +2,7 @@
 import React from 'react';
 import Card from '../tools/Card';
 import { MessageCircleDashed, PackageOpen, Settings, Trophy, type LucideIcon } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import type { AppView } from '../../types/type';
 
 interface DashboardItem {

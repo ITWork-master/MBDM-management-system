@@ -1,126 +1,137 @@
-import React, { useEffect, useState } from 'react'
-import Navbar from './tools/Navbar'
-import ComponentsLayout from './tools/ComponentsLayout'
-import { PowerOff, Shield, Palette, Trash2 } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
-import ThemeSwitcher from './tools/ThemeSwitcher'
+// src/components/Settings.tsx
+import React, { useEffect, useRef, useState } from 'react';
+import { Palette, PowerOff, Shield, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import Navbar from './tools/Navbar';
+import ComponentsLayout from './tools/ComponentsLayout';
+import ThemeSwitcher from './tools/ThemeSwitcher';
+import { useConfirm } from './tools/useConfirm';
+import { useAuth } from '../context/useAuth';
+import { deleteOwnAccount, MIN_PASSWORD_LENGTH } from '../services/auth.service';
+import { applyTheme } from '../lib/theme';
+import { toMessage } from '../lib/errors';
+import type { ThemeName } from '../types/type';
 
 const Settings: React.FC = () => {
-    const [isLoadingLogout, setIsLoadingLogout] = useState(false)
-    const [previewTheme, setPreviewTheme] = useState('light')
-    const [formData, setFormData] = useState({
-        newPassword: '',
-    })
-    const { logout, changePassword, changeTheme, userTheme } = useAuth()
+    const { logout, changePassword, changeTheme, userTheme, userName, pending } = useAuth();
+    const confirm = useConfirm();
 
+    const [newPassword, setNewPassword] = useState('');
+    const [previewTheme, setPreviewTheme] = useState<ThemeName>(userTheme);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+    // Le thème enregistré arrive avec le profil, après le premier rendu.
+    useEffect(() => setPreviewTheme(userTheme), [userTheme]);
+
+    // Aperçu immédiat du thème sélectionné, sans l'enregistrer.
+    useEffect(() => applyTheme(previewTheme), [previewTheme]);
+
+    // En quittant la page sans valider, on rétablit le thème enregistré.
+    const savedTheme = useRef(userTheme);
     useEffect(() => {
-        if (previewTheme === 'light') {
-            document.documentElement.setAttribute('data-theme', "cupcake")
-        } else {
-            document.documentElement.setAttribute('data-theme', "dark")
-        }
-    }, [previewTheme])
+        savedTheme.current = userTheme;
+    }, [userTheme]);
+    useEffect(() => () => applyTheme(savedTheme.current), []);
 
-    const handleLogout = () => {
-        if (window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-            try {
-                setIsLoadingLogout(true);
-                console.log('Déconnexion...')
-                setTimeout(() => {
-                    logout();
-                    setIsLoadingLogout(false)
-                }, 2000);
-            } catch (error) {
-                console.log("Erreur lors de la Déconnexion :", error);
-            }
-        }
-    }
+    const isPasswordTooShort =
+        newPassword.length > 0 && newPassword.length < MIN_PASSWORD_LENGTH;
 
-    const handleInputChangePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+    const handleChangePassword = async () => {
+        // `changePassword` renvoie désormais un booléen. Le service précédent
+        // retournait l'erreur au lieu de la lever, et l'interface affichait
+        // « Mot de passe modifié avec succès » même en cas d'échec.
+        if (await changePassword(newPassword)) setNewPassword('');
     };
 
-    const handleChangePassword = () => {
-        if (!formData.newPassword) {
-            alert('Veuillez entrer un nouveau mot de passe');
-            return;
-        }
+    const handleApplyTheme = async () => {
+        await changeTheme(previewTheme);
+    };
 
+    const handleLogout = async () => {
+        const confirmed = await confirm({
+            title: 'Se déconnecter',
+            message: 'Vous devrez saisir à nouveau vos identifiants pour revenir.',
+            confirmLabel: 'Se déconnecter',
+            danger: true,
+        });
+        if (confirmed) await logout();
+    };
+
+    const handleAccountDeletion = async () => {
+        const confirmed = await confirm({
+            title: 'Supprimer définitivement le compte',
+            message:
+                'Vos produits, témoignages et interventions seront supprimés. Cette action est irréversible.',
+            confirmLabel: 'Supprimer mon compte',
+            danger: true,
+        });
+        if (!confirmed) return;
+
+        setIsDeletingAccount(true);
         try {
-            changePassword(formData.newPassword);
-            setFormData({ newPassword: '' }); // Réinitialiser le champ après succès
-            alert('Mot de passe modifié avec succès');
-        } catch (error: any) {
-            console.log("Erreur lors du changement de Mot de passe : ", error);
-            alert('Erreur lors du changement de mot de passe');
+            await deleteOwnAccount();
+            toast.success('Compte supprimé.');
+        } catch (error) {
+            toast.error(toMessage(error, 'Erreur lors de la suppression du compte'));
+        } finally {
+            setIsDeletingAccount(false);
         }
-    }
+    };
 
-    const handleApplyTheme = () => {
-        changeTheme(previewTheme);
-        alert('Thème appliqué avec succès !');
-    }
-
-    const handleAccountDeletion = () => {
-        if (window.confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) {
-            console.log('Suppression du compte...')
-            // Logique de suppression de compte ici
-        }
-    }
-
-    if (isLoadingLogout) {
-        return (
-            <ComponentsLayout className='overflow-clip'>
-                <Navbar sectionName='Paramètres' />
-                <div className="flex justify-center items-center h-64">
-                    <div className="flex flex-col items-center gap-4 text-error">
-                        <span>Déconnexion en cours ...</span>
-                        <span className="loading loading-bars loading-xl"></span>
-                    </div>
-                </div>
-            </ComponentsLayout>
-        );
-    }
+    const isBusy = pending || isDeletingAccount;
 
     return (
-        <ComponentsLayout className='overflow-clip'>
-            <Navbar sectionName='Paramètres' />
+        <ComponentsLayout className="overflow-clip">
+            <Navbar sectionName="Paramètres" />
 
-            {/* Section Profil */}
-            <div className='flex flex-col justify-between h-full pb-20'>
-                <div className='mx-auto my-20 md:w-2/4 w-2/3'>
+            <div className="flex flex-col justify-between h-full pb-20">
+                <div className="mx-auto my-20 md:w-2/4 w-2/3">
+                    {userName && (
+                        <p className="mb-4 text-base-content/60">
+                            Connecté en tant que <span className="font-medium">{userName}</span>.
+                        </p>
+                    )}
+
+                    {/* Mot de passe */}
                     <div className="collapse collapse-arrow bg-base-100 border-base-300 border mb-4">
-                        <input type="checkbox" />
+                        <input type="checkbox" aria-label="Changer de mot de passe" />
                         <div className="collapse-title font-semibold flex items-center gap-3">
                             <Shield size={20} />
                             Changer Mot de Passe
                         </div>
                         <div className="collapse-content">
-                            <div className='space-y-2 w-full'>
+                            <div className="space-y-2 w-full">
                                 <div>
-                                    <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label
+                                        htmlFor="newPassword"
+                                        className="block text-sm font-medium text-base-content/70 mb-2"
+                                    >
                                         Nouveau Mot de passe
                                     </label>
                                     <input
                                         type="password"
                                         id="newPassword"
-                                        name="newPassword"
-                                        className='input input-bordered w-full'
-                                        value={formData.newPassword}
-                                        onChange={handleInputChangePassword}
+                                        autoComplete="new-password"
+                                        className="input input-bordered w-full"
+                                        value={newPassword}
+                                        onChange={(event) => setNewPassword(event.target.value)}
                                         placeholder="Entrez votre nouveau mot de passe"
                                     />
+                                    {isPasswordTooShort && (
+                                        <p className="mt-1 text-sm text-error">
+                                            Au moins {MIN_PASSWORD_LENGTH} caractères.
+                                        </p>
+                                    )}
                                 </div>
-                                <div className='text-right'>
+                                <div className="text-right">
                                     <button
-                                        type='button'
-                                        className='btn btn-neutral'
+                                        type="button"
+                                        className="btn btn-neutral"
                                         onClick={handleChangePassword}
-                                        disabled={!formData.newPassword}
+                                        disabled={
+                                            isBusy ||
+                                            newPassword.length < MIN_PASSWORD_LENGTH
+                                        }
                                     >
                                         Modifier le mot de passe
                                     </button>
@@ -129,9 +140,9 @@ const Settings: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Section Apparence */}
+                    {/* Apparence */}
                     <div className="collapse collapse-arrow bg-base-100 border-base-300 border mb-4">
-                        <input type="checkbox" />
+                        <input type="checkbox" aria-label="Apparence" />
                         <div className="collapse-title font-semibold flex items-center gap-3">
                             <Palette size={20} />
                             Apparence
@@ -139,9 +150,10 @@ const Settings: React.FC = () => {
                         <div className="collapse-content">
                             <div className="space-y-5">
                                 <div className="form-control flex justify-center md:gap-10 gap-2">
-                                    <div className='w-max'>
+                                    <div className="w-max">
                                         <ThemeSwitcher
-                                            setThemeValue={setPreviewTheme}
+                                            value={previewTheme}
+                                            onChange={setPreviewTheme}
                                         />
                                     </div>
                                     <label className="label">
@@ -151,22 +163,26 @@ const Settings: React.FC = () => {
                                         </span>
                                     </label>
                                 </div>
-                                <div>
-                                    <button
-                                        className='btn btn-primary w-full'
-                                        onClick={handleApplyTheme}
-                                        disabled={previewTheme === userTheme}
-                                    >
-                                        {previewTheme === userTheme ? 'Thème déjà appliqué' : 'Appliquer le thème'}
-                                    </button>
-                                </div>
+                                <button
+                                    type="button"
+                                    className="btn btn-primary w-full"
+                                    onClick={handleApplyTheme}
+                                    disabled={isBusy || previewTheme === userTheme}
+                                >
+                                    {previewTheme === userTheme
+                                        ? 'Thème déjà appliqué'
+                                        : 'Appliquer le thème'}
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
+
                 <div className="space-y-4 md:w-1/3 w-3/4 mx-auto">
                     <button
+                        type="button"
                         onClick={handleLogout}
+                        disabled={isBusy}
                         className="btn btn-outline btn-error w-full flex items-center gap-2"
                     >
                         <PowerOff size={20} />
@@ -174,16 +190,18 @@ const Settings: React.FC = () => {
                     </button>
 
                     <button
+                        type="button"
                         onClick={handleAccountDeletion}
+                        disabled={isBusy}
                         className="btn btn-ghost btn-error w-full flex items-center gap-2 text-sm"
                     >
                         <Trash2 size={16} />
-                        Supprimer mon compte
+                        {isDeletingAccount ? 'Suppression…' : 'Supprimer mon compte'}
                     </button>
                 </div>
             </div>
         </ComponentsLayout>
-    )
-}
+    );
+};
 
-export default Settings
+export default Settings;
