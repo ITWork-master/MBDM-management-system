@@ -1,327 +1,217 @@
-# 🚀 Application de Gestion de Contenu - Site Vitrine
+# 🚀 MBDM — Gestion de contenu du site vitrine
 
-Une application web moderne pour gérer le contenu de votre site vitrine, construite avec React, TypeScript et Supabase.
+Application web de back-office pour gérer le contenu du site vitrine MBDM :
+produits, témoignages clients et interventions. Construite avec React, TypeScript
+et Supabase.
 
-## 📋 Table des Matières
+## 📋 Sommaire
 
 - [Fonctionnalités](#-fonctionnalités)
-- [Technologies Utilisées](#-technologies-utilisées)
-- [Structure du Projet](#-structure-du-projet)
+- [Technologies](#-technologies)
+- [Structure du projet](#-structure-du-projet)
 - [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Utilisation](#-utilisation)
-- [Base de Données](#-base-de-données)
-- [Développement](#-développement)
+- [Configuration Supabase](#-configuration-supabase)
+- [Base de données](#-base-de-données)
+- [Scripts](#-scripts)
+- [Sécurité](#-sécurité)
 - [Déploiement](#-déploiement)
 
 ## ✨ Fonctionnalités
 
-### 🎯 Tableau de Bord
-- Interface intuitive avec navigation par cartes
-- Accès rapide à toutes les sections de gestion
-- Design responsive et moderne
+### 🎯 Tableau de bord
+Navigation par cartes vers les quatre sections, en responsive.
 
-### 📦 Gestion des Produits
-- ✅ Ajouter, modifier et supprimer des produits
-- 📸 Upload d'images vers Supabase Storage
-- 📝 Gestion des titres et descriptions
-- 🗂️ Organisation automatique par date
+### 📦 Produits
+Création, modification et suppression, classés en cinq types (électrique,
+thermique, climatisation, ventilation, froid). Recherche plein texte et filtre
+par type. Image carrée avec recadrage et rotation avant envoi.
 
-### 💬 Gestion des Témoignages
-- 👥 Ajout de témoignages clients
-- 💾 Stockage des noms et messages
-- 📊 Affichage sous forme de cartes citations
+### 💬 Témoignages
+Nom du client et message, présentés sous forme de cartes citations.
 
-### 🏆 Gestion des Exploits
-- 🎖️ Création de réalisations et succès
-- 🖼️ Support des images illustratives
-- 📈 Suivi des accomplissements
+### 🏆 Interventions
+Titre, description et image au format 4:3, avec recherche.
 
-### 🔐 Authentification Sécurisée
-- 🔒 Connexion et inscription
-- 🛡️ Protection des routes
-- 👤 Données utilisateur isolées
+### 🔐 Authentification
+Inscription, connexion, changement de mot de passe, suppression de compte.
+Chaque utilisateur ne voit que ses propres données, garanti par les politiques
+RLS de PostgreSQL.
 
-## 🛠 Technologies Utilisées
+### 🎨 Thème
+Bascule clair (`cupcake`) / sombre, prévisualisable avant validation et
+mémorisée dans le profil.
 
-- **Frontend**: React 18, TypeScript, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Auth + Storage)
-- **Icons**: Lucide React
-- **Build Tool**: Vite
-- **State Management**: React Hooks + Context API
+## 🛠 Technologies
 
-## 📁 Structure du Projet
+| | |
+|---|---|
+| Frontend | React 19, TypeScript 5.8 |
+| Styles | Tailwind CSS 4, daisyUI 5 |
+| Backend | Supabase (PostgreSQL + Auth + Storage) |
+| Build | Vite 7 |
+| Icônes | Lucide React |
+| Notifications | Sonner |
+| Recadrage | react-easy-crop |
+
+## 📁 Structure du projet
 
 ```
+supabase/
+└── schema.sql              # Tables, RLS, storage, triggers — à exécuter en premier
 src/
 ├── components/
-│   ├── auth/           # Composants d'authentification
-│   ├── dashboard/      # Tableau de bord principal
-│   ├── tools/          # Composants réutilisables
-│   ├── Products.tsx    # Gestion des produits
-│   ├── Testimonials.tsx # Gestion des témoignages
-│   └── Achievements.tsx # Gestion des exploits
+│   ├── auth/               # Login, Register
+│   ├── dashboard/          # Tableau de bord
+│   ├── entities/           # Briques partagées par les pages de contenu
+│   │   ├── EntityCard.tsx      # Carte produit / intervention
+│   │   ├── EntityFormModal.tsx # Enveloppe de formulaire
+│   │   └── ImageField.tsx      # Champ fichier + aperçu
+│   ├── tools/              # Composants génériques (Modal, Navbar, ConfirmDialog…)
+│   ├── Products.tsx
+│   ├── Achievements.tsx
+│   ├── Testimonials.tsx
+│   ├── TestimonialCard.tsx
+│   └── Settings.tsx
 ├── context/
-│   └── AuthContext.tsx # Gestion d'état global
+│   ├── AuthContext.tsx     # Provider : session, profil, navigation
+│   └── useAuth.ts          # Contexte et hook de consommation
 ├── hooks/
-│   ├── useProducts.ts     # Hook produits
-│   ├── useTestimonials.ts # Hook témoignages
-│   └── useAchievements.ts # Hook exploits
-├── services/
-│   ├── products.service.ts     # Service produits
-│   ├── testimonials.service.ts # Service témoignages
-│   └── achievements.service.ts # Service exploits
+│   ├── useCrud.ts          # État et opérations d'une liste d'entités
+│   ├── useProducts.ts      # ─┐
+│   ├── useAchievements.ts  #  ├─ déclinaisons de useCrud
+│   ├── useTestimonials.ts  # ─┘
+│   └── useImagePicker.ts   # Sélection, validation et recadrage d'image
 ├── lib/
-│   └── supabase.ts     # Configuration Supabase
-└── App.tsx             # Composant principal
+│   ├── supabase/Supabase.ts
+│   ├── image.ts            # Recadrage canvas, validation des fichiers
+│   ├── theme.ts            # Application du thème au document
+│   └── errors.ts           # Normalisation des erreurs
+├── services/
+│   ├── crud.service.ts     # Fabrique de CRUD, partagée par les trois tables
+│   ├── storage.service.ts  # Envoi et suppression des images
+│   ├── auth.service.ts     # Session, profil, mot de passe, compte
+│   ├── products.service.ts
+│   ├── achievements.service.ts
+│   └── testimonials.service.ts
+├── types/type.ts
+└── App.tsx
 ```
 
 ## 🚀 Installation
 
 ### Prérequis
-- Node.js 16+ et npm
-- Compte Supabase
+- Node.js 20+ et pnpm
+- Un projet Supabase
 
-### Étapes d'installation
+### Étapes
 
-1. **Cloner le repository**
 ```bash
 git clone <votre-repo>
-cd site-vitrine-cms
+cd MBDM-management-system
+pnpm install
+cp .env.example .env    # puis renseigner les deux variables
+pnpm dev
 ```
 
-2. **Installer les dépendances**
-```bash
-npm install
-```
+L'application démarre sur http://localhost:5173.
 
-3. **Configuration de l'environnement**
-```bash
-cp .env.example .env
-```
+### Variables d'environnement
 
-4. **Remplir les variables d'environnement**
-```env
-VITE_SUPABASE_URL=votre_url_supabase
-VITE_SUPABASE_ANON_KEY=votre_cle_anon_supabase
-```
+| Variable | Description |
+|---|---|
+| `VITE_SUPABASE_URL` | URL du projet Supabase |
+| `VITE_SUPABASE_ANON_KEY` | Clé `anon` (publique) du projet |
 
-## ⚙️ Configuration Supabase
+Ces deux valeurs sont **publiques par conception** : Vite les intègre au bundle
+JavaScript, donc n'importe qui peut les lire. La sécurité ne repose pas sur leur
+confidentialité mais sur les politiques RLS. Ne jamais placer la clé
+`service_role` dans ce fichier : elle contourne toutes les politiques.
 
-### 1. Créer un projet Supabase
+`.env` n'est pas versionné. Seul `.env.example` l'est.
 
-1. Allez sur [supabase.com](https://supabase.com)
-2. Créez un nouveau projet
-3. Récupérez l'URL et la clé anonyme dans les paramètres
+## 🗄 Configuration Supabase
 
-### 2. Configurer la Base de Données
+1. Créer un projet sur [supabase.com](https://supabase.com).
+2. Ouvrir **SQL Editor** et exécuter l'intégralité de
+   [`supabase/schema.sql`](supabase/schema.sql). Le script est idempotent : il
+   crée les tables, active la RLS, pose les politiques, crée le bucket `images`
+   et installe le trigger de création de profil.
+3. Vérifier que la RLS est bien active :
 
-Exécutez ces requêtes SQL dans l'éditeur SQL de Supabase :
+   ```sql
+   select tablename, rowsecurity
+   from pg_tables
+   where schemaname = 'public'
+     and tablename in ('profiles', 'images', 'testimonials', 'achievements');
+   ```
 
-```sql
--- Table des produits
-create table public.images (
-  id uuid not null default extensions.uuid_generate_v4 (),
-  user_id uuid null,
-  title text null,
-  description text null,
-  image_url text null,
-  created_at timestamp without time zone null default now(),
-  updated_at timestamp without time zone null,
-  constraint images_pkey primary key (id),
-  constraint images_user_id_fkey foreign KEY (user_id) references auth.users (id)
-) TABLESPACE pg_default;
+   Les quatre lignes doivent afficher `rowsecurity = true`.
 
--- Table des témoignages
-create table public.testimonials (
-  id uuid not null default extensions.uuid_generate_v4 (),
-  user_id uuid null,
-  client_name text null,
-  message text null,
-  created_at timestamp without time zone null default now(),
-  updated_at timestamp without time zone null,
-  constraint testimonials_pkey primary key (id),
-  constraint testimonials_user_id_fkey foreign KEY (user_id) references auth.users (id)
-) TABLESPACE pg_default;
+4. Si le site vitrine lit directement ces tables sans authentification,
+   décommenter la section « 3 bis » du script, qui ouvre la **lecture seule**
+   au rôle `anon`. L'écriture reste réservée au propriétaire. `profiles` n'est
+   jamais concerné.
 
--- Table des exploits
-create table public.achievements (
-  id uuid not null default extensions.uuid_generate_v4 (),
-  user_id uuid null,
-  title text null,
-  description text null,
-  image_url text null,
-  created_at timestamp without time zone null default now(),
-  updated_at timestamp without time zone null,
-  constraint achievements_pkey primary key (id),
-  constraint achievements_user_id_fkey foreign KEY (user_id) references auth.users (id)
-) TABLESPACE pg_default;
-```
+## 📊 Base de données
 
-### 3. Configurer le Storage
+Le schéma de référence est `supabase/schema.sql`. En résumé :
 
-1. Allez dans **Storage** → **Buckets**
-2. Créez un bucket nommé `images`
-3. Configurez les politiques RLS :
+| Table | Rôle | Colonnes propres |
+|---|---|---|
+| `profiles` | Profil applicatif, 1-1 avec `auth.users` | `name`, `theme` |
+| `images` | **Produits** (nom historique) | `title`, `description`, `type`, `image_url` |
+| `testimonials` | Témoignages | `client_name`, `message` |
+| `achievements` | Interventions | `title`, `description`, `image_url` |
 
-```sql
--- Politique pour permettre aux utilisateurs de lire leurs images
-CREATE POLICY "Users can view their own images" ON storage.objects
-FOR SELECT USING (auth.uid() = owner);
+Toutes les tables de contenu portent `id`, `user_id`, `created_at`, `updated_at`.
 
--- Politique pour permettre aux utilisateurs d'uploader leurs images
-CREATE POLICY "Users can upload their own images" ON storage.objects
-FOR INSERT WITH CHECK (auth.uid() = owner);
+> ⚠️ La table `images` contient les **produits**, pas des fichiers. Le bucket de
+> stockage porte lui aussi le nom `images`. Voir `PRODUCTS_TABLE` dans
+> `src/services/products.service.ts` et `IMAGE_BUCKET` dans
+> `src/services/storage.service.ts`.
 
--- Politique pour permettre aux utilisateurs de supprimer leurs images
-CREATE POLICY "Users can delete their own images" ON storage.objects
-FOR DELETE USING (auth.uid() = owner);
-```
+Le bucket range les fichiers sous `<user_id>/<uuid>.<ext>` : le premier segment
+du chemin sert aux politiques RLS du storage à identifier le propriétaire.
 
-## 🎯 Utilisation
+## 📜 Scripts
 
-### Démarrage en développement
-
-```bash
-npm run dev
-```
-
-L'application sera accessible sur `http://localhost:5173`
-
-### Construction pour la production
-
-```bash
-npm run build
-```
-
-### Preview de la build
-
-```bash
-npm run preview
-```
-
-## 📊 Base de Données
-
-### Schéma des Tables
-
-#### `images` (Produits)
-- `id` - Identifiant unique
-- `user_id` - Référence à l'utilisateur
-- `title` - Titre du produit
-- `description` - Description du produit
-- `image_url` - URL de l'image
-- `created_at` - Date de création
-- `updated_at` - Date de modification
-
-#### `testimonials` (Témoignages)
-- `id` - Identifiant unique
-- `user_id` - Référence à l'utilisateur
-- `client_name` - Nom du client
-- `message` - Contenu du témoignage
-- `created_at` - Date de création
-- `updated_at` - Date de modification
-
-#### `achievements` (Exploits)
-- `id` - Identifiant unique
-- `user_id` - Référence à l'utilisateur
-- `title` - Titre de l'exploit
-- `description` - Description de l'exploit
-- `image_url` - URL de l'image
-- `created_at` - Date de création
-- `updated_at` - Date de modification
-
-## 🔧 Développement
-
-### Ajouter une nouvelle fonctionnalité
-
-1. **Créer le service**
-```typescript
-// services/ma-nouvelle-feature.service.ts
-export const maNouvelleFeatureService = {
-  // Implémenter les méthodes CRUD
-};
-```
-
-2. **Créer le hook**
-```typescript
-// hooks/useMaNouvelleFeature.ts
-export const useMaNouvelleFeature = () => {
-  // Gestion d'état et méthodes
-};
-```
-
-3. **Créer le composant**
-```typescript
-// components/MaNouvelleFeature.tsx
-const MaNouvelleFeature: React.FC = () => {
-  // Interface utilisateur
-};
-```
-
-### Styles et Design
-
-Le projet utilise Tailwind CSS avec une configuration personnalisée :
-
-- Design system cohérent
-- Composants réutilisables
-- Responsive design
-- États de chargement et erreurs
-
-## 🚀 Déploiement
-
-### Déploiement sur Vercel
-
-1. **Installer Vercel CLI**
-```bash
-npm i -g vercel
-```
-
-2. **Déployer**
-```bash
-vercel
-```
-
-3. **Configurer les variables d'environnement** dans les paramètres du projet Vercel
-
-### Déploiement sur Netlify
-
-1. **Construire le projet**
-```bash
-npm run build
-```
-
-2. **Déployer le dossier `dist`** sur Netlify
-
-3. **Configurer les variables d'environnement** dans les paramètres du site Netlify
+| Commande | Effet |
+|---|---|
+| `pnpm dev` | Serveur de développement |
+| `pnpm build` | Vérification des types puis build de production |
+| `pnpm typecheck` | Vérification des types seule |
+| `pnpm lint` | ESLint |
+| `pnpm preview` | Sert le build de production localement |
 
 ## 🔒 Sécurité
 
-- Authentification via Supabase Auth
-- Row Level Security (RLS) activé sur toutes les tables
-- Validation des données côté client et serveur
-- Protection contre les injections SQL
-- Gestion sécurisée des uploads d'images
+- Authentification par Supabase Auth.
+- **Row Level Security activée sur les quatre tables**, avec des politiques qui
+  restreignent chaque ligne à son propriétaire (`auth.uid() = user_id`). C'est
+  la seule barrière réelle : la clé `anon` étant publique, une table sans RLS
+  est lisible et modifiable par n'importe qui sur Internet.
+- Les requêtes du client filtrent également sur `user_id`, y compris pour les
+  mises à jour et les suppressions — une défense en profondeur, pas un
+  substitut aux politiques.
+- Les uploads sont validés côté client (type MIME et taille, 5 Mo maximum) et
+  cloisonnés par utilisateur côté storage.
+- Aucune clé `service_role` ni aucun appel à l'API admin de Supabase ne figure
+  dans le code client. La suppression de compte passe par la fonction
+  `delete_own_account`, en `security definer`, qui n'agit que sur l'appelant.
 
-## 🤝 Contribution
+## 🚀 Déploiement
 
-1. Fork le projet
-2. Créer une branche feature (`git checkout -b feature/AmazingFeature`)
-3. Commit les changements (`git commit -m 'Add some AmazingFeature'`)
-4. Push sur la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrir une Pull Request
+```bash
+pnpm build
+```
+
+Déployer le dossier `dist/` (Netlify, Vercel, Cloudflare Pages…) et définir
+`VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` dans les variables
+d'environnement du site.
+
+Servir impérativement en HTTPS : `crypto.randomUUID()`, utilisé pour nommer les
+fichiers envoyés, n'est disponible qu'en contexte sécurisé.
 
 ## 📄 Licence
 
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
-
-## 🆘 Support
-
-Pour toute question ou problème :
-
-1. Vérifiez la documentation Supabase
-2. Consultez les issues GitHub
-3. Contactez l'équipe de développement
-
----
-
-**Développé avec ❤️ pour simplifier la gestion de contenu des sites vitrines**
+Aucune licence n'est définie pour l'instant ; le projet est privé.
