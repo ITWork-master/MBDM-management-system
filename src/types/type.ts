@@ -1,81 +1,112 @@
-import type { User } from "@supabase/supabase-js";
+import type { User } from '@supabase/supabase-js';
 
-export interface AppUser {
+// -- Thème ------------------------------------------------------------------
+
+export type ThemeName = 'light' | 'dark';
+
+// -- Navigation -------------------------------------------------------------
+
+export const APP_VIEWS = [
+    'login',
+    'register',
+    'dashboard',
+    'products',
+    'testimonials',
+    'achievements',
+    'settings',
+] as const;
+
+export type AppView = (typeof APP_VIEWS)[number];
+
+/** Vues accessibles sans être connecté. */
+export const PUBLIC_VIEWS: readonly AppView[] = ['login', 'register'];
+
+// -- Auth -------------------------------------------------------------------
+
+export interface Profile {
     id: string;
-    email: string;
-    user_metadata?: {
-        name?: string;
-    };
+    name: string;
+    theme: ThemeName;
 }
 
 export interface AuthState {
     user: User | null;
     userName: string | null;
-    userTheme : string;
+    userTheme: ThemeName;
     error: string | null;
 }
 
-export type AppView = 'login' | 'register' | 'dashboard' | 'products' | 'testimonials' | 'achievements' | 'settings';
+// -- Base commune aux entités ----------------------------------------------
 
-// Products Interfaces
-export interface Product {
+/** Champs que toute ligne possède, quelle que soit la table. */
+export interface BaseEntity {
     id: string;
     user_id: string;
-    title: string;
-    description: string;
-    type: 'electrique' | 'thermique' | 'climatisation' | 'ventilation' | 'froid';
-    image_url: string | null;
     created_at: string;
     updated_at: string | null;
+}
+
+/** Entité illustrée par une image du bucket de stockage. */
+export interface ImageEntity extends BaseEntity {
+    title: string;
+    description: string;
+    image_url: string | null;
+}
+
+// -- Produits ---------------------------------------------------------------
+
+export const PRODUCT_TYPES = [
+    'electrique',
+    'thermique',
+    'climatisation',
+    'ventilation',
+    'froid',
+] as const;
+
+export type ProductType = (typeof PRODUCT_TYPES)[number];
+
+/** Libellés affichés, indexés par valeur stockée en base. */
+export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
+    electrique: 'Électrique',
+    thermique: 'Thermique',
+    climatisation: 'Climatisation',
+    ventilation: 'Ventilation',
+    froid: 'Froid',
+};
+
+export const isProductType = (value: unknown): value is ProductType =>
+    PRODUCT_TYPES.includes(value as ProductType);
+
+export interface Product extends ImageEntity {
+    type: ProductType;
 }
 
 export interface CreateProductData {
     title: string;
     description: string;
-    type: 'electrique' | 'thermique' | 'climatisation' | 'ventilation' | 'froid';
-    image_url?: string;
+    type: ProductType;
+    image_url?: string | null;
 }
 
-export interface UpdateProductData {
-    title?: string;
-    description?: string;
-    type: 'electrique' | 'thermique' | 'climatisation' | 'ventilation' | 'froid';
-    image_url?: string;
-}
+export type UpdateProductData = Partial<CreateProductData>;
 
-// Achievements Interfaces
+// -- Interventions ----------------------------------------------------------
 
-export interface Achievement {
-    id: string;
-    user_id: string;
-    title: string;
-    description: string;
-    image_url: string | null;
-    created_at: string;
-    updated_at: string | null;
-}
+export type Achievement = ImageEntity;
 
 export interface CreateAchievementData {
     title: string;
     description: string;
-    image_url?: string;
+    image_url?: string | null;
 }
 
-export interface UpdateAchievementData {
-    title?: string;
-    description?: string;
-    image_url?: string;
-}
+export type UpdateAchievementData = Partial<CreateAchievementData>;
 
+// -- Témoignages ------------------------------------------------------------
 
-// Testimonials Interfaces
-export interface Testimonial {
-    id: string;
-    user_id: string;
+export interface Testimonial extends BaseEntity {
     client_name: string;
     message: string;
-    created_at: string;
-    updated_at: string | null;
 }
 
 export interface CreateTestimonialData {
@@ -83,7 +114,4 @@ export interface CreateTestimonialData {
     message: string;
 }
 
-export interface UpdateTestimonialData {
-    client_name?: string;
-    message?: string;
-}
+export type UpdateTestimonialData = Partial<CreateTestimonialData>;
